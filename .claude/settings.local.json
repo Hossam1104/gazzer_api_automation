@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node -e:*)",
+      "Bash(npx playwright:*)",
+      "Bash(cd:*)",
+      "Bash(npm run report:*)",
+      "Bash(dir:*)",
+      "Bash(tee:*)",
+      "Bash(timeout 600 tail:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)"
+    ]
+  },
+  "hooks": {
+    "afterEdit": {
+      "command": "npx tsc --noEmit --pretty 2>&1 | head -20",
+      "description": "Type-check after every edit to catch mismatches early"
+    }
+  }
+}
+

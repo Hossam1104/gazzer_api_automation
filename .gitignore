@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Environment (contains credentials — NEVER commit)
+.env
+
+# Test artifacts
+test-results/
+reports/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+
+# Build output
+dist/

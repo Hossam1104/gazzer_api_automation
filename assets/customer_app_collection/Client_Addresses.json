@@ -1,0 +1,424 @@
+{
+  "info": {
+    "_postman_id": "2b9e75ac-3b32-4f67-9066-6a027e1fd5bb",
+    "name": "Addresses",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "49589172"
+  },
+  "item": [
+    {
+      "name": "Client Address",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept-Language",
+            "value": "ar",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE}}/api/clients/addresses?per_page=10&page=1",
+          "host": [
+            "{{BASE}}"
+          ],
+          "path": [
+            "api",
+            "clients",
+            "addresses"
+          ],
+          "query": [
+            {
+              "key": "per_page",
+              "value": "10"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "get  Address by location",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept-Language",
+            "value": "ar",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE}}/api/clients/addresses/validate-addresses?lat={{lat}}&long={{long}}",
+          "host": [
+            "{{BASE}}"
+          ],
+          "path": [
+            "api",
+            "clients",
+            "addresses",
+            "validate-addresses"
+          ],
+          "query": [
+            {
+              "key": "lat",
+              "value": "{{lat}}"
+            },
+            {
+              "key": "long",
+              "value": "{{long}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Add New Address",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Accept-Language",
+            "value": "ar",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "name",
+              "value": "Workeee",
+              "type": "text"
+            },
+            {
+              "key": "address",
+              "value": "12 Mokattam",
+              "type": "text"
+            },
+            {
+              "key": "long",
+              "value": "{{long}}",
+              "type": "text"
+            },
+            {
+              "key": "lat",
+              "value": "{{lat}}",
+              "type": "text"
+            },
+            {
+              "key": "is_default",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "province_id",
+              "value": "4",
+              "type": "text"
+            },
+            {
+              "key": "province_zone_id",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "building",
+              "value": "5",
+              "type": "text"
+            },
+            {
+              "key": "floor",
+              "value": "2",
+              "type": "text"
+            },
+            {
+              "key": "apartment",
+              "value": "45",
+              "type": "text"
+            },
+            {
+              "key": "street",
+              "value": "sdjk5",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{BASE}}/api/clients/addresses",
+          "host": [
+            "{{BASE}}"
+          ],
+          "path": [
+            "api",
+            "clients",
+            "addresses"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Address",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "name",
+              "value": "Work",
+              "type": "text"
+            },
+            {
+              "key": "address",
+              "value": "12 Mokattam",
+              "type": "text"
+            },
+            {
+              "key": "long",
+              "value": "123",
+              "type": "text"
+            },
+            {
+              "key": "lat",
+              "value": "15",
+              "type": "text"
+            },
+            {
+              "key": "is_default",
+              "value": "0",
+              "type": "text"
+            },
+            {
+              "key": "province_id",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "province_zone_id",
+              "value": "2",
+              "type": "text"
+            },
+            {
+              "key": "building",
+              "value": "5",
+              "type": "text"
+            },
+            {
+              "key": "floor",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "apartment",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "street",
+              "value": "0005",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{BASE}}/api/clients/addresses/update/2",
+          "host": [
+            "{{BASE}}"
+          ],
+          "path": [
+            "api",
+            "clients",
+            "addresses",
+            "update",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Address",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE}}/api/clients/addresses/6",
+          "host": [
+            "{{BASE}}"
+          ],
+          "path": [
+            "api",
+            "clients",
+            "addresses",
+            "6"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Default Address",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "address_id",
+              "value": "3",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{BASE}}/api/clients/addresses/set-default",
+          "host": [
+            "{{BASE}}"
+          ],
+          "path": [
+            "api",
+            "clients",
+            "addresses",
+            "set-default"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{TOKEN}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE",
+      "value": ""
+    },
+    {
+      "key": "TOKEN",
+      "value": ""
+    }
+  ]
+}

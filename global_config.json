@@ -1,0 +1,27 @@
+{
+  "api": {
+    "base_url": "https://client-backend.gazzertest.cloud"
+  },
+  "app_bases": {
+    "customer": {
+      "authentication": {
+        "user_one": {
+          "login": "1226028080",
+          "password": "Hoss@1234"
+        },
+        "user_two": {
+          "login": "1111666749",
+          "password": "Hoss@123"
+        },
+        "login_endpoint": "/api/clients/auth/login"
+      }
+    }
+  },
+  "execution": {
+    "minimum_test_cases": 200,
+    "max_test_cases": 250,
+    "request_delay": 0.5,
+    "cleanup_enabled": true,
+    "cleanup_mode": "partial"
+  }
+}

@@ -1,0 +1,45 @@
+name: Gazzer API Automation
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 0 * * *' # Daily at midnight
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    
+    env:
+      ENVIRONMENT: CI
+      BASE_URL: ${{ secrets.BASE_URL }}
+      AUTH_EMAIL: ${{ secrets.AUTH_EMAIL }}
+      AUTH_PASSWORD: ${{ secrets.AUTH_PASSWORD }}
+      
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+      
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run API Tests
+      run: npx playwright test
+
+    - name: Generate HTML Report
+      if: always()
+      run: npx ts-node -r tsconfig-paths/register src/scripts/generate_report.ts
+
+    - name: Upload Report Artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: api-test-report
+        path: test-results/
+        retention-days: 30

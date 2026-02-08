@@ -1,0 +1,2267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Address API Testing Report | Gazzer App</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #000000;
+            --secondary-color: #3949ab;
+            --success-color: #43a047;
+            --warning-color: #ff9800;
+            --danger-color: #e53935;
+            --info-color: #039be5;
+            --light-color: #f5f7fa;
+            --dark-color: #263238;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+        }
+
+        .navbar-custom {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-header {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--card-shadow);
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .card-custom {
+            border-radius: 10px;
+            border: none;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            height: 100%;
+        }
+
+        .card-custom_total {
+            border-radius: 10px;
+            border: none;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            height: 58.75%;
+        }
+
+        .card-custom:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-pass {
+            background-color: rgba(67, 160, 71, 0.15);
+            color: var(--success-color);
+        }
+
+        .status-fail {
+            background-color: rgba(229, 57, 53, 0.15);
+            color: var(--danger-color);
+        }
+
+        .status-warning {
+            background-color: rgba(255, 152, 0, 0.15);
+            color: var(--warning-color);
+        }
+
+        .status-blocked {
+            background-color: rgba(96, 125, 139, 0.15);
+            color: #607d8b;
+        }
+
+        .status-env {
+            background-color: rgba(3, 155, 229, 0.15);
+            color: var(--info-color);
+        }
+
+        .status-skipped {
+            background-color: rgba(158, 158, 158, 0.15);
+            color: #9e9e9e;
+        }
+
+        .status-invalid-setup {
+            background-color: rgba(156, 39, 176, 0.15);
+            color: #9c27b0;
+        }
+
+        .test-case-card.invalid-test-setup {
+            border-left-color: #9c27b0;
+        }
+
+        .status-recovered {
+            background-color: rgba(0, 150, 136, 0.15);
+            color: #009688;
+        }
+
+        .bg-teal {
+            background-color: #009688 !important;
+        }
+
+        .test-case-card.recovered {
+            border-left-color: #009688;
+        }
+
+        .test-case-card {
+            border-left: 4px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: white;
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+
+        .test-case-card:hover {
+            border-left-color: var(--secondary-color);
+            background-color: #f8f9ff;
+        }
+
+        .test-case-card.pass {
+            border-left-color: var(--success-color);
+        }
+
+        .test-case-card.fail {
+            border-left-color: var(--danger-color);
+        }
+
+        .test-case-card.warning {
+            border-left-color: var(--warning-color);
+        }
+
+        .test-case-card.blocked {
+            border-left-color: #607d8b;
+        }
+
+        .test-case-card.env-constraint {
+            border-left-color: var(--info-color);
+        }
+
+        .test-case-card.skipped {
+            border-left-color: #9e9e9e;
+        }
+
+        .metrics-card {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .bug-severity-critical {
+            border-left: 4px solid #7b1fa2;
+        }
+
+        .bug-severity-high {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .bug-severity-medium {
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .bug-severity-low {
+            border-left: 4px solid var(--info-color);
+        }
+
+        .progress-custom {
+            height: 12px;
+            border-radius: 10px;
+        }
+
+        .tab-content {
+            padding: 20px;
+            background-color: white;
+            border-radius: 0 0 10px 10px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: #666;
+            font-weight: 500;
+            padding: 12px 25px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .nav-tabs .nav-link.active {
+            background-color: white;
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        .data-table {
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            background-color: #f1f3ff;
+            padding: 12px;
+            font-weight: 600;
+            color: var(--primary-color);
+            border-top: none;
+        }
+
+        .data-table td {
+            padding: 12px;
+            vertical-align: top;
+        }
+
+        .data-table tr:hover {
+            background-color: #f8f9ff;
+        }
+
+        .json-view {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .filter-btn {
+            border-radius: 20px;
+            padding: 6px 15px;
+            font-size: 0.85rem;
+            margin: 0 5px 5px 0;
+        }
+
+        .footer {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 20px 0;
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .execution-info {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 0.9rem;
+        }
+
+        .accordion-button:not(.collapsed) {
+            background-color: rgba(26, 35, 126, 0.05);
+            color: var(--primary-color);
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+
+        .badge-category {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* Failure type badges */
+        .badge-failure-type {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .ft-api-failure {
+            background-color: #ffcdd2;
+            color: #b71c1c;
+        }
+
+        .ft-infra-failure {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        .ft-lifecycle-blocked {
+            background-color: #eceff1;
+            color: #455a64;
+        }
+
+        .ft-environment-noise {
+            background-color: #e1f5fe;
+            color: #01579b;
+        }
+
+        .ft-setup-error {
+            background-color: #fce4ec;
+            color: #880e4f;
+        }
+
+        .ft-worker-crash {
+            background-color: #f3e5f5;
+            color: #4a148c;
+        }
+
+        .ft-validation-failure {
+            background-color: #fff8e1;
+            color: #f57f17;
+        }
+
+        .ft-invalid-test-setup {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .ft-skipped-by-design {
+            background-color: #ede7f6;
+            color: #512da8;
+        }
+
+        .ft-none {
+            background-color: #e8f5e9;
+            color: #1b5e20;
+        }
+
+        .bg-purple {
+            background-color: #9c27b0 !important;
+        }
+
+        .badge-confirmed-bug {
+            background-color: #e53935;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        /* Integrity panel */
+        .integrity-healthy {
+            border-left: 4px solid #43a047;
+        }
+
+        .integrity-degraded {
+            border-left: 4px solid #ff9800;
+        }
+
+        .integrity-untrustworthy {
+            border-left: 4px solid #e53935;
+        }
+
+        /* OWASP mapping table */
+        .owasp-table th {
+            background-color: #1a237e;
+            color: white;
+        }
+
+        .owasp-table .owasp-pass {
+            background-color: #e8f5e9;
+        }
+
+        .owasp-table .owasp-fail {
+            background-color: #ffebee;
+        }
+
+        .owasp-table .owasp-partial {
+            background-color: #fff8e1;
+        }
+
+        .owasp-table .owasp-na {
+            background-color: #f5f5f5;
+            color: #9e9e9e;
+        }
+
+        /* Config compliance banner */
+        .config-compliance-pass {
+            border-left: 5px solid #43a047;
+            background: #e8f5e9;
+        }
+
+        .config-compliance-fail {
+            border-left: 5px solid #e53935;
+            background: #ffebee;
+        }
+
+        .config-compliance-warn {
+            border-left: 5px solid #ff9800;
+            background: #fff8e1;
+        }
+
+        /* Executive bug summary cards */
+        .exec-category-card {
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .exec-category-card h6 {
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        /* Arabic RTL support for payload containers */
+        .json-view[dir="rtl"],
+        .json-view [dir="rtl"] {
+            direction: rtl;
+            text-align: right;
+            font-family: 'Courier New', 'Tahoma', 'Arial', monospace;
+        }
+
+        .json-view pre[dir="auto"] {
+            unicode-bidi: plaintext;
+        }
+
+        @media (max-width: 768px) {
+            .metric-value {
+                font-size: 2rem;
+            }
+
+            .nav-tabs .nav-link {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <i class="fas fa-map-marker-alt fa-2x me-2" style="color: #fff;"></i>
+                <div>
+                    <h4 class="mb-0">Gazzer App</h4>
+                    <small class="opacity-75">Enterprise Testing Platform</small>
+                </div>
+            </a>
+            <div class="navbar-text text-white">
+                <h5 class="mb-0">Address API Testing Report</h5>
+                <small>Executed by: Hossam Mohamed</small>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container my-4">
+        <!-- Report Header -->
+        <div class="report-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="text-primary mb-2">Address API Testing Report</h1>
+                    <p class="lead mb-1">Enterprise Address API Lifecycle Automation Testing</p>
+                    <div class="d-flex flex-wrap mt-3">
+                        <div class="me-4 mb-2">
+                            <i class="fas fa-calendar-alt text-secondary me-1"></i>
+                            <strong>Execution Date:</strong> <span id="execution-date">-</span>
+                        </div>
+                        <div class="me-4 mb-2">
+                            <i class="fas fa-server text-secondary me-1"></i>
+                            <strong>Environment:</strong> <span id="environment">testing</span>
+                        </div>
+                        <div class="me-4 mb-2">
+                            <i class="fas fa-link text-secondary me-1"></i>
+                            <strong>Base URL:</strong> <span id="base-url">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end" id="release-readiness-container">
+                    <div id="release-readiness-alert" class="alert alert-secondary">
+                        <h4 class="alert-heading"><i class="fas fa-spinner fa-spin me-2"></i>Loading...</h4>
+                        <p class="mb-0">Calculating release readiness...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="row mb-4">
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card card-custom metrics-card">
+                    <div class="card-body_total">
+                        <div class="metric-value text-primary" id="total-tests">-</div>
+                        <div class="metric-label">Total Test Cases</div>
+                        <div class="mt-3">
+                            <small class="text-muted"><i class="fas fa-check-circle text-success me-1"></i> <span
+                                    id="passed-tests">-</span> Passed</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card card-custom metrics-card">
+                    <div class="card-body">
+                        <div class="metric-value" id="pass-rate">-</div>
+                        <div class="metric-label">Overall Pass Rate</div>
+                        <div class="progress progress-custom mt-3">
+                            <div id="pass-rate-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"
+                                aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card card-custom metrics-card">
+                    <div class="card-body">
+                        <div class="metric-value text-danger" id="failed-tests">-</div>
+                        <div class="metric-label">Failed Tests</div>
+                        <div class="mt-3">
+                            <small class="text-muted"><i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                <span id="high-bugs">0</span> High Severity Bugs</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card card-custom metrics-card">
+                    <div class="card-body">
+                        <div class="metric-value text-warning" id="functional-pass-rate">-</div>
+                        <div class="metric-label">Effective Pass Rate</div>
+                        <div class="mt-3">
+                            <small class="text-muted"><i class="fas fa-file-contract text-info me-1"></i> <span
+                                    id="contract-compliance">-</span> Contract Compliance</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs" id="reportTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary"
+                    type="button" role="tab" aria-controls="summary" aria-selected="true">
+                    <i class="fas fa-chart-pie me-2"></i>Summary
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="integrity-tab" data-bs-toggle="tab" data-bs-target="#integrity"
+                    type="button" role="tab" aria-controls="integrity" aria-selected="false">
+                    <i class="fas fa-shield-alt me-2"></i>Data Integrity
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="test-cases-tab" data-bs-toggle="tab" data-bs-target="#test-cases"
+                    type="button" role="tab" aria-controls="test-cases" aria-selected="false">
+                    <i class="fas fa-list-check me-2"></i>Test Cases
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="bugs-tab" data-bs-toggle="tab" data-bs-target="#bugs" type="button"
+                    role="tab" aria-controls="bugs" aria-selected="false">
+                    <i class="fas fa-bug me-2"></i>Bugs & Issues
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button"
+                    role="tab" aria-controls="details" aria-selected="false">
+                    <i class="fas fa-info-circle me-2"></i>Details
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="executive-tab" data-bs-toggle="tab" data-bs-target="#executive"
+                    type="button" role="tab" aria-controls="executive" aria-selected="false">
+                    <i class="fas fa-briefcase me-2"></i>Executive
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button"
+                    role="tab" aria-controls="security" aria-selected="false">
+                    <i class="fas fa-shield-virus me-2"></i>Security
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="infra-tab" data-bs-toggle="tab" data-bs-target="#infrastructure"
+                    type="button" role="tab" aria-controls="infrastructure" aria-selected="false">
+                    <i class="fas fa-server me-2"></i>Infrastructure
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="reportTabsContent">
+            <!-- Summary Tab -->
+            <div class="tab-pane fade show active" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+                <div class="row">
+                    <div class="col-lg-8 mb-4">
+                        <h4 class="mb-3">Test Results Overview</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card card-custom">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Test Status Distribution</h5>
+                                        <div class="chart-container">
+                                            <canvas id="statusChart"></canvas>
+                                        </div>
+                                        <div class="row text-center mt-3">
+                                            <div class="col-2">
+                                                <div class="status-badge status-pass d-inline-block">PASS</div>
+                                                <div class="mt-1"><strong id="pass-count">-</strong></div>
+                                            </div>
+                                            <div class="col-2">
+                                                <div class="status-badge status-recovered d-inline-block">REC</div>
+                                                <div class="mt-1"><strong id="recovered-count">-</strong></div>
+                                            </div>
+                                            <div class="col-2">
+                                                <div class="status-badge status-fail d-inline-block">FAIL</div>
+                                                <div class="mt-1"><strong id="fail-count">-</strong></div>
+                                            </div>
+                                            <div class="col-2">
+                                                <div class="status-badge status-warning d-inline-block">DEV</div>
+                                                <div class="mt-1"><strong id="deviation-count">-</strong></div>
+                                            </div>
+                                            <div class="col-2">
+                                                <div class="status-badge status-blocked d-inline-block">BLK</div>
+                                                <div class="mt-1"><strong id="blocked-count">-</strong></div>
+                                            </div>
+                                            <div class="col-2">
+                                                <div class="status-badge status-env d-inline-block">ENV</div>
+                                                <div class="mt-1"><strong id="env-count">-</strong></div>
+                                            </div>
+                                        </div>
+                                        <div class="row text-center mt-2">
+                                            <div class="col-12">
+                                                <div class="status-badge status-invalid-setup d-inline-block">INVALID
+                                                    SETUP</div>
+                                                <span class="ms-1"><strong id="invalid-setup-count">-</strong></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card card-custom">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Bug Severity Distribution</h5>
+                                        <div class="chart-container">
+                                            <canvas id="bugChart"></canvas>
+                                        </div>
+                                        <div class="row text-center mt-3">
+                                            <div class="col-3">
+                                                <div style="color:#7b1fa2"><strong id="critical-bug-count">0</strong>
+                                                </div>
+                                                <small>Critical</small>
+                                            </div>
+                                            <div class="col-3">
+                                                <div class="text-danger"><strong id="high-bug-count">0</strong></div>
+                                                <small>High</small>
+                                            </div>
+                                            <div class="col-3">
+                                                <div class="text-warning"><strong id="medium-bug-count">0</strong></div>
+                                                <small>Medium</small>
+                                            </div>
+                                            <div class="col-3">
+                                                <div class="text-info"><strong id="low-bug-count">0</strong></div>
+                                                <small>Low</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card-custom_total">
+                            <div class="card-body">
+                                <h5 class="card-title">Test Categories</h5>
+                                <table class="table data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Total</th>
+                                            <th>Passed</th>
+                                            <th>Failed</th>
+                                            <th>Blocked</th>
+                                            <th>Env</th>
+                                            <th>Eff. Pass Rate</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="category-table">
+                                        <!-- Filled by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 mb-4">
+                        <h4 class="mb-3">Execution Details</h4>
+                        <div class="card card-custom">
+                            <div class="card-body">
+                                <h5 class="card-title">Database Configuration</h5>
+                                <div class="execution-info mb-3">
+                                    <div class="mb-2">
+                                        <strong>Host:</strong> <span id="db-host">-</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Database:</strong> <span id="db-name">-</span>
+                                    </div>
+                                    <div>
+                                        <strong>Validation:</strong> <span
+                                            class="status-badge status-pass">Enabled</span>
+                                    </div>
+                                </div>
+
+                                <h5 class="card-title mt-4">Execution Configuration</h5>
+                                <div class="execution-info">
+                                    <div class="mb-2">
+                                        <strong>Minimum Test Cases:</strong> <span id="min-tests">-</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Timeout:</strong> <span id="timeout">30</span> seconds
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Retry Attempts:</strong> <span id="retry-attempts">0</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Request Delay:</strong> <span id="request-delay">-</span> seconds
+                                    </div>
+                                    <div>
+                                        <strong>Fail Fast:</strong> <span id="fail-fast">Disabled</span>
+                                    </div>
+                                </div>
+
+                                <h5 class="card-title mt-4">Client Coverage</h5>
+                                <div class="mb-3">
+                                    <div class="small fw-bold text-muted mb-2">Authenticated Users:</div>
+                                    <div class="d-flex flex-wrap gap-2" id="client-coverage-container">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                    <div class="small fw-bold text-muted mt-3 mb-2">Utilized During Execution:</div>
+                                    <div class="d-flex flex-wrap gap-2" id="users-utilized-container">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-warning mt-4" id="key-findings-alert">
+                                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Key Findings</h6>
+                                    <ul class="mb-0" id="key-findings-list">
+                                        <!-- Populated by JS -->
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Integrity Tab -->
+            <div class="tab-pane fade" id="integrity" role="tabpanel" aria-labelledby="integrity-tab">
+                <h4 class="mb-3"><i class="fas fa-shield-alt me-2"></i>Data Integrity</h4>
+                <div id="integrity-panel">
+                    <div class="alert alert-secondary">Loading integrity data...</div>
+                </div>
+            </div>
+
+            <!-- Test Cases Tab -->
+            <div class="tab-pane fade" id="test-cases" role="tabpanel" aria-labelledby="test-cases-tab">
+                <h4 class="mb-3">Test Cases Details</h4>
+                <div class="mb-4">
+                    <div class="card card-custom mb-4 p-3 border-0 bg-white">
+                        <div class="row g-3 align-items-center">
+                            <!-- Top Row: Search (full width) -->
+                            <div class="col-12">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-0"><i
+                                            class="fas fa-search text-muted"></i></span>
+                                    <input type="text" id="test-search-input" class="form-control border-0 bg-light"
+                                        placeholder="Search by Test ID or Name...">
+                                    <button class="btn btn-light border-0" type="button" onclick="clearSearch()">
+                                        <i class="fas fa-times text-muted"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Status Filters -->
+                            <div class="col-12 d-flex align-items-center gap-2 flex-wrap" id="filter-buttons">
+                                <span class="small text-muted fw-bold me-1">Status:</span>
+                                <button class="btn btn-sm btn-outline-primary filter-btn rounded-pill active"
+                                    data-filter="all">All</button>
+                                <button class="btn btn-sm btn-outline-success filter-btn rounded-pill"
+                                    data-filter="PASS">Passed</button>
+                                <button class="btn btn-sm btn-outline-danger filter-btn rounded-pill"
+                                    data-filter="FAIL">Failed</button>
+                                <button class="btn btn-sm btn-outline-warning filter-btn rounded-pill"
+                                    data-filter="PASS_WITH_CONTRACT_DEVIATION">Deviations</button>
+                                <button class="btn btn-sm btn-outline-secondary filter-btn rounded-pill"
+                                    data-filter="BLOCKED_BY_DEPENDENCY">Blocked</button>
+                                <button class="btn btn-sm btn-outline-info filter-btn rounded-pill"
+                                    data-filter="ENVIRONMENT_CONSTRAINT">Env</button>
+                                <button class="btn btn-sm btn-outline-dark filter-btn rounded-pill"
+                                    data-filter="SKIPPED">Skipped</button>
+                                <button class="btn btn-sm btn-outline-danger filter-btn rounded-pill"
+                                    style="border-color: #9c27b0; color: #9c27b0;"
+                                    data-filter="INVALID_TEST_SETUP">Invalid Setup</button>
+                            </div>
+
+                            <!-- Bottom Row: Dropdowns -->
+                            <div class="col-12">
+                                <div class="d-flex gap-2 align-items-center flex-wrap bg-light p-2 rounded">
+                                    <i class="fas fa-filter text-muted ms-2 me-1"></i>
+                                    <select id="filter-method"
+                                        class="form-select form-select-sm border-0 bg-transparent"
+                                        style="width: auto; font-weight: 500;" onchange="applyFilters()">
+                                        <option value="all">All Methods</option>
+                                        <option value="GET">GET</option>
+                                        <option value="POST">POST</option>
+                                        <option value="PUT">PUT</option>
+                                        <option value="DELETE">DELETE</option>
+                                        <option value="PATCH">PATCH</option>
+                                    </select>
+                                    <div class="vr opacity-25"></div>
+                                    <select id="filter-endpoint"
+                                        class="form-select form-select-sm border-0 bg-transparent"
+                                        style="width: auto; max-width: 300px; font-weight: 500;"
+                                        onchange="applyFilters()">
+                                        <option value="all">All Endpoints</option>
+                                        <!-- Populated by JS -->
+                                    </select>
+                                    <div class="vr opacity-25"></div>
+                                    <select id="filter-language"
+                                        class="form-select form-select-sm border-0 bg-transparent"
+                                        style="width: auto; font-weight: 500;" onchange="applyFilters()">
+                                        <option value="all">All Languages</option>
+                                        <option value="en">English (EN)</option>
+                                        <option value="ar">العربية (AR)</option>
+                                    </select>
+                                    <div class="vr opacity-25"></div>
+                                    <select id="filter-severity"
+                                        class="form-select form-select-sm border-0 bg-transparent"
+                                        style="width: auto; font-weight: 500;" onchange="applyFilters()">
+                                        <option value="all">All Severities</option>
+                                        <option value="CRITICAL">CRITICAL</option>
+                                        <option value="HIGH">HIGH</option>
+                                        <option value="MEDIUM">MEDIUM</option>
+                                        <option value="LOW">LOW</option>
+                                    </select>
+                                    <div class="ms-auto">
+                                        <button class="btn btn-sm btn-link text-muted text-decoration-none"
+                                            onclick="resetFilters()">
+                                            <i class="fas fa-undo-alt me-1"></i> Reset Filters
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="test-cases-container">
+                        <!-- Test cases will be dynamically loaded here -->
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <nav aria-label="Test cases pagination">
+                            <ul class="pagination justify-content-center" id="pagination-controls">
+                                <!-- Pagination will be dynamically generated -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bugs Tab -->
+            <div class="tab-pane fade" id="bugs" role="tabpanel" aria-labelledby="bugs-tab">
+                <h4 class="mb-3">Bugs & Issues Detected</h4>
+                <div id="bugs-banner-container">
+                    <!-- Populated by JS -->
+                </div>
+                <div class="row mb-4" id="bugs-severity-cards">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div class="accordion" id="bugsAccordion">
+                    <!-- Bugs will be dynamically loaded here -->
+                </div>
+            </div>
+
+            <!-- Details Tab -->
+            <div class="tab-pane fade" id="details" role="tabpanel" aria-labelledby="details-tab">
+                <h4 class="mb-3">Report Details & Configuration</h4>
+
+                <div class="row">
+                    <div class="col-lg-6 mb-4">
+                        <div class="card card-custom">
+                            <div class="card-body">
+                                <h5 class="card-title">Report Metadata</h5>
+                                <table class="table data-table">
+                                    <tbody>
+                                        <tr>
+                                            <th width="40%">API Name</th>
+                                            <td id="api-name">addresses</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Description</th>
+                                            <td id="api-description">Enterprise Address API Lifecycle Automation
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Random Seed</th>
+                                            <td id="random-seed">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Generated</th>
+                                            <td id="generated-date">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Total Test Cases</th>
+                                            <td id="total-test-cases">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Pass Rate</th>
+                                            <td><span class="status-badge status-pass" id="detail-pass-rate">-</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6 mb-4">
+                        <div class="card card-custom">
+                            <div class="card-body">
+                                <h5 class="card-title">Execution Statistics</h5>
+                                <table class="table data-table">
+                                    <tbody>
+                                        <tr>
+                                            <th width="40%">Passed</th>
+                                            <td><span class="status-badge status-pass" id="detail-passed">-</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Passed with Deviations</th>
+                                            <td><span class="status-badge status-warning"
+                                                    id="detail-deviations">-</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Failed</th>
+                                            <td><span class="status-badge status-fail" id="detail-failed">-</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Skipped</th>
+                                            <td><span class="status-badge status-skipped" id="detail-skipped">-</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Blocked</th>
+                                            <td><span class="status-badge status-blocked" id="detail-blocked">-</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Environment Constraints</th>
+                                            <td><span class="status-badge status-env" id="detail-env">-</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Invalid Test Setup</th>
+                                            <td><span class="status-badge status-invalid-setup"
+                                                    id="detail-invalid-setup">-</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Effective Pass Rate</th>
+                                            <td><span class="status-badge status-pass"
+                                                    id="detail-effective-rate">-</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Contract Compliance</th>
+                                            <td><span class="status-badge status-warning"
+                                                    id="detail-compliance">-</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-custom">
+                    <div class="card-body">
+                        <h5 class="card-title">Sample Test Case Data</h5>
+                        <div class="json-view">
+                            <pre id="sample-test-case">Loading sample data...</pre>
+                        </div>
+                        <p class="mt-3"><small>This is a sample test case from the report.</small></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Executive Tab -->
+            <div class="tab-pane fade" id="executive" role="tabpanel" aria-labelledby="executive-tab">
+                <h4 class="mb-3"><i class="fas fa-briefcase me-2"></i>Executive Summary</h4>
+                <div id="config-compliance-banner"></div>
+                <div id="executive-bug-summary"></div>
+                <div id="executive-category-breakdown"></div>
+            </div>
+
+            <!-- Security Tab -->
+            <div class="tab-pane fade" id="security" role="tabpanel" aria-labelledby="security-tab">
+                <h4 class="mb-3"><i class="fas fa-shield-virus me-2"></i>OWASP API Security Top 10 Mapping</h4>
+                <div id="owasp-mapping-container"></div>
+                <div id="security-test-coverage" class="mt-4"></div>
+            </div>
+
+            <!-- Infrastructure Tab -->
+            <div class="tab-pane fade" id="infrastructure" role="tabpanel" aria-labelledby="infra-tab">
+                <h4 class="mb-3"><i class="fas fa-server me-2"></i>Infrastructure & Rate Limiting</h4>
+                <div id="rate-limit-summary"></div>
+                <div id="performance-summary" class="mt-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-md-start text-center mb-3 mb-md-0">
+                    <h5>Gazzer App</h5>
+                    <p>Enterprise Testing Solutions</p>
+                </div>
+                <div class="col-md-6 text-md-end text-center">
+                    <p>Report generated: <span id="report-date">-</span></p>
+                    <p>Executed by: <strong>Hossam Mohamed</strong></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="customer_app/addresses_report_data.js"></script>
+
+    <script>
+        // --- DASHBOARD CORE LOGIC ---
+        // TRUTH > UI CONTINUITY: Strict data validation with high-fidelity UI features.
+
+        // Global State
+        window.allTestCases = [];
+        window.currentStatusFilter = 'all';
+        window.currentMethodFilter = 'all';
+        window.currentEndpointFilter = 'all';
+        window.currentLanguageFilter = 'all';
+        window.currentSeverityFilter = 'all';
+        window.currentSearchTerm = '';
+        window.itemsPerPage = 10;
+        window.currentPage = 1;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log("Report Overhaul v3: Initializing full feature set...");
+
+            try {
+                // 1. DATA VALIDATION (FAIL LOUD)
+                if (typeof window.REPORT_DATA === 'undefined') {
+                    throw new Error("window.REPORT_DATA is missing. Report file is corrupt or execution failed.");
+                }
+
+                const data = window.REPORT_DATA;
+                const required = ['meta', 'testCases'];
+                required.forEach(key => {
+                    if (!data[key]) throw new Error(`Required report key '${key}' is missing or null.`);
+                });
+
+                // Ensure optional keys have defaults
+                data.bugs = data.bugs || [];
+                data.rootFailures = data.rootFailures || [];
+                data.environmentReadiness = data.environmentReadiness || { status: 'UNKNOWN', healthy: false };
+
+                // 2. DATA NORMALIZATION (Ensure schema compatibility)
+                const normalized = normalizeData(data);
+                window.allTestCases = normalized.testCases;
+
+                // 3. CROSS-VALIDATE META (Phase 3)
+                const validation = crossValidateMeta(normalized.meta, normalized.testCases);
+
+                // Use recomputed values for rendering when mismatches exist
+                const renderMeta = validation.valid ? normalized.meta : { ...normalized.meta, ...validation.recomputed };
+
+                // 4. RENDER DASHBOARD
+                renderSummary(renderMeta);
+                initializeCharts(renderMeta);
+                initializeCategoryTable(normalized.testCases);
+                initializeBugs(normalized.testCases);
+                renderIntegrityPanel(data, validation);
+
+                // 5. SETUP FILTERS
+                populateEndpointDropdown(normalized.testCases);
+                setupFilterButtons();
+                setupSearchListener();
+
+                // 6. INITIAL LIST RENDER
+                renderPaginationAndList();
+
+                // 7. RENDER NEW EXECUTIVE/SECURITY/INFRA TABS
+                renderExecutiveTab(renderMeta, normalized.testCases, data.bugs || []);
+                renderSecurityTab(normalized.testCases);
+                renderInfrastructureTab(renderMeta, normalized.testCases);
+
+            } catch (error) {
+                console.error("[FATAL ERROR]", error);
+                const body = document.body;
+                body.innerHTML = `
+                    <div style="padding: 50px; text-align: center; font-family: sans-serif;">
+                        <h1 style="color: #e53935;">FATAL REPORT ERROR</h1>
+                        <p style="font-size: 1.2rem;">${error.message}</p>
+                        <div style="margin-top: 30px; padding: 20px; background: #ffeeee; border: 1px solid #ffcdd2; display: inline-block; text-align: left;">
+                            <strong>Consistency Check Failed:</strong> Reports must adhere to the defined schema.
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        // ── Phase 3: Cross-Validation ──────────────────────────────────────
+        function crossValidateMeta(meta, testCases) {
+            const recomputed = {
+                totalTestCases: testCases.length,
+                passed: 0,
+                passedWithDeviations: 0,
+                failed: 0,
+                blocked: 0,
+                environmentConstraints: 0,
+                skipped: 0,
+                invalidTestSetup: 0,
+            };
+
+            testCases.forEach(tc => {
+                const s = tc.status;
+                if (s === 'PASS') recomputed.passed++;
+                else if (s === 'PASS_WITH_CONTRACT_DEVIATION') recomputed.passedWithDeviations++;
+                else if (s === 'FAIL') recomputed.failed++;
+                else if (s === 'BLOCKED_BY_DEPENDENCY') recomputed.blocked++;
+                else if (s === 'ENVIRONMENT_CONSTRAINT') recomputed.environmentConstraints++;
+                else if (s === 'SKIPPED') recomputed.skipped++;
+                else if (s === 'INVALID_TEST_SETUP') recomputed.invalidTestSetup++;
+            });
+
+            const warnings = [];
+            const fields = ['totalTestCases', 'passed', 'failed', 'blocked', 'skipped', 'environmentConstraints', 'invalidTestSetup'];
+            fields.forEach(f => {
+                const metaVal = meta[f] !== undefined ? meta[f] : 0;
+                if (metaVal !== recomputed[f]) {
+                    warnings.push(`meta.${f} = ${metaVal}, recomputed = ${recomputed[f]}`);
+                }
+            });
+            if ((meta.passedWithDeviations || 0) !== recomputed.passedWithDeviations) {
+                warnings.push(`meta.passedWithDeviations = ${meta.passedWithDeviations || 0}, recomputed = ${recomputed.passedWithDeviations}`);
+            }
+
+            if (warnings.length > 0) {
+                console.warn('[CROSS-VALIDATION] Meta/data mismatches detected:');
+                warnings.forEach(w => console.warn('  -', w));
+            }
+
+            return { recomputed, warnings, valid: warnings.length === 0 };
+        }
+
+        function normalizeData(raw) {
+            const meta = raw.meta || {};
+            const testCases = (raw.testCases || []).map(tc => ({
+                test_id: tc.test_id || tc.id || 'N/A',
+                test_name: tc.test_name || tc.name || 'Untitled',
+                description: tc.description || '',
+                status: (tc.status || tc.final_status || 'UNKNOWN').toUpperCase(),
+                priority: (tc.priority || tc.severity || 'MEDIUM').toUpperCase(),
+                category: tc.category || 'General',
+                endpoint: tc.endpoint || '/',
+                http_method: tc.http_method || tc.method || 'GET',
+                execution_time_ms: tc.execution_time_ms || 0,
+                expected_result: tc.expected_result || '-',
+                actual_result: tc.actual_result || '-',
+                request_payload: tc.request_payload || null,
+                response_payload: tc.response_payload || null,
+                executed_at: tc.executed_at || new Date().toISOString(),
+                bug: tc.bug || null,
+                // Failure taxonomy fields (Phase 5.1)
+                failure_type: tc.failure_type || 'NONE',
+                api_exercised: tc.api_exercised || false,
+                confirmed_api_bug: tc.confirmed_api_bug || false,
+                classification_reason: tc.classification_reason || '',
+                diagnostic_notes: tc.diagnostic_notes || [],
+                response_status_code: tc.response_status_code || 0,
+                languages: tc.languages || [],
+                users_utilized: tc.users_utilized || [],
+                extended_payloads: tc.extended_payloads || null,
+                owasp_category: tc.owasp_category || null,
+            }));
+
+            return { meta, testCases };
+        }
+
+        function safelyGet(id) {
+            const el = document.getElementById(id);
+            if (!el) {
+                console.warn(`[DOM] Optional or missing element: #${id}`);
+                return null;
+            }
+            return el;
+        }
+
+        function setText(id, value) {
+            const el = safelyGet(id);
+            if (el) el.textContent = (value !== undefined && value !== null) ? value : '-';
+        }
+
+        function renderSummary(meta) {
+            // Metrics Bindings
+            setText('execution-date', formatDate(meta.executionDate));
+            setText('environment', meta.environment || 'testing');
+            setText('base-url', meta.baseUrl || '-');
+            setText('total-tests', meta.totalTestCases);
+            setText('passed-tests', meta.passed);
+            setText('failed-tests', meta.failed);
+            setText('pass-rate', meta.passRate);
+            setText('functional-pass-rate', meta.effectivePassRate || meta.passRate);
+            setText('contract-compliance', meta.contractComplianceRate || '0%');
+            setText('high-bugs', (meta.bugs?.critical || 0) + (meta.bugs?.high || 0));
+
+            // Pass rate bar
+            const passRateBar = safelyGet('pass-rate-bar');
+            if (passRateBar) {
+                const pct = parseFloat(meta.passRate) || 0;
+                passRateBar.style.width = pct + '%';
+                passRateBar.setAttribute('aria-valuenow', pct);
+            }
+
+            // Detail Table Bindings
+            setText('api-name', meta.apiName || 'addresses');
+            setText('api-description', meta.description || 'Enterprise Address API Lifecycle Automation');
+            setText('random-seed', meta.executionSeed || meta.random_seed || '-');
+            setText('generated-date', formatDate(meta.executionDate));
+            setText('report-date', formatDate(meta.executionDate, true));
+            setText('total-test-cases', meta.totalTestCases);
+            setText('detail-pass-rate', meta.passRate);
+            setText('detail-passed', meta.passed);
+            setText('detail-deviations', meta.passedWithDeviations || 0);
+            setText('detail-failed', meta.failed);
+            setText('detail-skipped', meta.skipped || 0);
+            setText('detail-blocked', meta.blocked || 0);
+            setText('detail-env', meta.environmentConstraints || 0);
+            setText('detail-invalid-setup', meta.invalidTestSetup || 0);
+            setText('detail-effective-rate', meta.effectivePassRate || '-');
+            setText('detail-compliance', meta.contractComplianceRate || '-');
+
+            // Status counts
+            setText('pass-count', meta.passed);
+            setText('recovered-count', meta.recovered || 0);
+            setText('fail-count', meta.failed);
+            setText('deviation-count', meta.passedWithDeviations || 0);
+            setText('blocked-count', meta.blocked || 0);
+            setText('env-count', meta.environmentConstraints || 0);
+            setText('skip-count', meta.skipped || 0);
+            setText('invalid-setup-count', meta.invalidTestSetup || 0);
+
+            // Database Details
+            setText('db-host', meta.database?.host);
+            setText('db-name', meta.database?.database);
+
+            // Execution Config
+            if (meta.executionConfig) {
+                setText('min-tests', meta.executionConfig.minimum_test_cases);
+                setText('timeout', meta.executionConfig.timeout);
+                setText('retry-attempts', meta.executionConfig.retry_attempts);
+                setText('request-delay', meta.executionConfig.request_delay);
+                setText('fail-fast', meta.executionConfig.fail_fast ? 'Enabled' : 'Disabled');
+            }
+
+            // Client Coverage
+            const clientContainer = safelyGet('client-coverage-container');
+            if (clientContainer) {
+                clientContainer.innerHTML = '';
+                if (meta.clientIds && meta.clientIds.length > 0) {
+                    meta.clientIds.forEach(cid => {
+                        const name = meta.clientNames?.[cid] || cid;
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-primary';
+                        badge.textContent = name;
+                        clientContainer.appendChild(badge);
+                    });
+                } else {
+                    clientContainer.innerHTML = '<span class="text-muted small">No client data available</span>';
+                }
+            }
+
+            // Users Utilized
+            const usersContainer = safelyGet('users-utilized-container');
+            if (usersContainer) {
+                usersContainer.innerHTML = '';
+                if (meta.usersUtilized && meta.usersUtilized.length > 0) {
+                    meta.usersUtilized.forEach(u => {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-teal';
+                        badge.textContent = u;
+                        usersContainer.appendChild(badge);
+                    });
+                } else {
+                    usersContainer.innerHTML = '<span class="text-muted small">None recorded</span>';
+                }
+            }
+
+            // Key Findings (dynamic)
+            const findingsList = safelyGet('key-findings-list');
+            if (findingsList) {
+                const findings = [];
+                if (meta.failed > 0) findings.push(`${meta.failed} failed test(s) detected`);
+                if ((meta.bugs?.critical || 0) > 0) findings.push(`${meta.bugs.critical} critical severity bug(s)`);
+                if ((meta.bugs?.high || 0) > 0) findings.push(`${meta.bugs.high} high severity bug(s)`);
+                if ((meta.passedWithDeviations || 0) > 0) findings.push(`${meta.passedWithDeviations} contract deviation(s)`);
+                if ((meta.blocked || 0) > 0) findings.push(`${meta.blocked} blocked test(s)`);
+                if ((meta.environmentConstraints || 0) > 0) findings.push(`${meta.environmentConstraints} environment constraint(s)`);
+                if (findings.length === 0) findings.push('All tests passed successfully');
+                findingsList.innerHTML = findings.map(f => `<li>${f}</li>`).join('');
+            }
+
+            // Sample Payload (Details Tab)
+            const sampleEl = safelyGet('sample-test-case');
+            if (sampleEl && window.allTestCases.length > 0) {
+                sampleEl.textContent = formatJSON(window.allTestCases[0]);
+            }
+
+            // ── Phase 4: Release Readiness Alert — 3-state from meta.releaseReadiness ──
+            const alertEl = safelyGet('release-readiness-alert');
+            if (alertEl) {
+                const readiness = (meta.releaseReadiness || 'BLOCKED').toUpperCase();
+                let alertClass, icon, title, message;
+
+                if (readiness === 'BLOCKED') {
+                    alertClass = 'alert alert-danger';
+                    icon = '<i class="fas fa-ban me-2"></i>';
+                    title = 'Release Readiness: BLOCKED';
+                    message = 'Confirmed API bugs detected. Release not recommended.';
+                } else if (readiness === 'WARNING') {
+                    alertClass = 'alert alert-warning';
+                    icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+                    title = 'Release Readiness: WARNING';
+                    message = 'Issues detected but no confirmed critical API bugs. Review recommended.';
+                } else {
+                    alertClass = 'alert alert-success';
+                    icon = '<i class="fas fa-check-circle me-2"></i>';
+                    title = 'Release Readiness: READY';
+                    message = 'No confirmed API bugs. Release candidate is clear.';
+                }
+
+                alertEl.className = alertClass;
+                alertEl.innerHTML = `<h4 class="alert-heading">${icon}${title}</h4><p class="mb-0">${message}</p>`;
+            }
+        }
+
+        // ── Phase 5.4 + 5.5: Charts with all segments ──
+        function initializeCharts(meta) {
+            // Status Chart — 7 segments (with Invalid Setup)
+            const statusCtx = safelyGet('statusChart')?.getContext('2d');
+            if (statusCtx) {
+                new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pass', 'Recovered', 'Fail', 'Deviation', 'Blocked', 'Env Constraint', 'Skipped', 'Invalid Setup'],
+                        datasets: [{
+                            data: [
+                                meta.passed || 0,
+                                meta.recovered || 0,
+                                meta.failed || 0,
+                                meta.passedWithDeviations || 0,
+                                meta.blocked || 0,
+                                meta.environmentConstraints || 0,
+                                meta.skipped || 0,
+                                meta.invalidTestSetup || 0
+                            ],
+                            backgroundColor: ['#43a047', '#009688', '#e53935', '#ff9800', '#607d8b', '#039be5', '#bdbdbd', '#9c27b0'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                    }
+                });
+            }
+
+            // Bug Severity Chart — 4 levels including Critical
+            const bugCtx = safelyGet('bugChart')?.getContext('2d');
+            if (bugCtx) {
+                const bugs = meta.bugs || { critical: 0, high: 0, medium: 0, low: 0 };
+                new Chart(bugCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Critical', 'High', 'Medium', 'Low'],
+                        datasets: [{
+                            label: 'Severity Count',
+                            data: [bugs.critical || 0, bugs.high || 0, bugs.medium || 0, bugs.low || 0],
+                            backgroundColor: ['#7b1fa2', '#e53935', '#ff9800', '#039be5'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+                setText('critical-bug-count', bugs.critical || 0);
+                setText('high-bug-count', bugs.high || 0);
+                setText('medium-bug-count', bugs.medium || 0);
+                setText('low-bug-count', bugs.low || 0);
+            }
+        }
+
+        // ── Phase 5.6: Category table — all 6 outcomes ──
+        function initializeCategoryTable(testCases) {
+            const table = safelyGet('category-table');
+            if (!table) return;
+
+            const stats = {};
+            testCases.forEach(tc => {
+                const cat = tc.category || 'General';
+                if (!stats[cat]) stats[cat] = { total: 0, passed: 0, failed: 0, blocked: 0, env: 0, skipped: 0, deviations: 0, invalidSetup: 0 };
+                stats[cat].total++;
+                const s = tc.status;
+                if (s === 'PASS') stats[cat].passed++;
+                else if (s === 'RECOVERED') { stats[cat].passed++; }
+                else if (s === 'PASS_WITH_CONTRACT_DEVIATION') { stats[cat].passed++; stats[cat].deviations++; }
+                else if (s === 'FAIL') stats[cat].failed++;
+                else if (s === 'BLOCKED_BY_DEPENDENCY') stats[cat].blocked++;
+                else if (s === 'ENVIRONMENT_CONSTRAINT') stats[cat].env++;
+                else if (s === 'SKIPPED') stats[cat].skipped++;
+                else if (s === 'INVALID_TEST_SETUP') stats[cat].invalidSetup++;
+            });
+
+            const rows = Object.entries(stats).map(([cat, s]) => {
+                // Effective pass rate excludes blocked + env + invalidSetup
+                const effectiveDenom = s.total - s.blocked - s.env - s.invalidSetup;
+                const rate = effectiveDenom > 0 ? (s.passed / effectiveDenom) * 100 : 0;
+                return { cat, ...s, rate };
+            }).sort((a, b) => b.failed - a.failed);
+
+            table.innerHTML = rows.map(r => `
+                <tr>
+                    <td class="fw-bold small">${r.cat}</td>
+                    <td><span class="badge bg-secondary rounded-pill">${r.total}</span></td>
+                    <td><span class="text-success">${r.passed}</span></td>
+                    <td><span class="text-danger">${r.failed}</span></td>
+                    <td><span class="text-muted">${r.blocked}</span></td>
+                    <td><span style="color: var(--info-color)">${r.env}</span></td>
+                    <td style="min-width: 120px;">
+                        <div class="d-flex align-items-center">
+                            <div class="progress flex-grow-1" style="height: 6px;">
+                                <div class="progress-bar ${r.rate < 50 ? 'bg-danger' : r.rate < 80 ? 'bg-warning' : 'bg-success'}"
+                                     style="width: ${r.rate}%"></div>
+                            </div>
+                            <span class="ms-2 small fw-bold">${r.rate.toFixed(0)}%</span>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ── Phase 5.7: Bugs tab — conditional display ──
+        function initializeBugs(testCases) {
+            const container = safelyGet('bugsAccordion');
+            const bannerContainer = safelyGet('bugs-banner-container');
+            const severityCards = safelyGet('bugs-severity-cards');
+            if (!container) return;
+
+            // Count confirmed API bugs from testCases
+            const confirmedBugs = testCases.filter(tc => tc.confirmed_api_bug);
+            const bugs = [];
+            testCases.forEach(tc => {
+                if (tc.bug) bugs.push({ ...tc.bug, related_test_case_id: tc.test_id });
+            });
+
+            const bugCounts = { critical: 0, high: 0, medium: 0, low: 0 };
+            bugs.forEach(b => {
+                const sev = (b.severity || 'low').toLowerCase();
+                if (sev in bugCounts) bugCounts[sev]++;
+            });
+
+            // Suppress banner when 0 confirmed bugs
+            if (bannerContainer) {
+                if (confirmedBugs.length > 0) {
+                    bannerContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5><i class="fas fa-exclamation-circle me-2"></i>Critical Issues Blocking Release</h5>
+                            <p class="mb-0">${confirmedBugs.length} confirmed API bug(s) detected that must be addressed before release.</p>
+                        </div>`;
+                } else if (bugs.length > 0) {
+                    bannerContainer.innerHTML = `
+                        <div class="alert alert-info">
+                            <h5><i class="fas fa-info-circle me-2"></i>Non-blocking Issues</h5>
+                            <p class="mb-0">${bugs.length} bug(s) detected but none are confirmed critical API failures.</p>
+                        </div>`;
+                } else {
+                    bannerContainer.innerHTML = `
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-check-circle me-2"></i>No Bugs Detected</h5>
+                            <p class="mb-0">No bugs were reported in this test run.</p>
+                        </div>`;
+                }
+            }
+
+            // Severity cards — only show if count > 0
+            if (severityCards) {
+                let cardsHtml = '';
+                if (bugCounts.critical > 0) {
+                    cardsHtml += `<div class="col-md-3 mb-3"><div class="card card-custom" style="border-left: 4px solid #7b1fa2"><div class="card-body"><h5 class="card-title" style="color:#7b1fa2">Critical</h5><div class="metric-value" style="color:#7b1fa2">${bugCounts.critical}</div><div class="metric-label">Require immediate attention</div></div></div></div>`;
+                }
+                if (bugCounts.high > 0) {
+                    cardsHtml += `<div class="col-md-3 mb-3"><div class="card card-custom border-danger"><div class="card-body"><h5 class="card-title text-danger">High</h5><div class="metric-value text-danger">${bugCounts.high}</div><div class="metric-label">Require immediate attention</div></div></div></div>`;
+                }
+                if (bugCounts.medium > 0) {
+                    cardsHtml += `<div class="col-md-3 mb-3"><div class="card card-custom border-warning"><div class="card-body"><h5 class="card-title text-warning">Medium</h5><div class="metric-value text-warning">${bugCounts.medium}</div><div class="metric-label">Should be addressed</div></div></div></div>`;
+                }
+                if (bugCounts.low > 0) {
+                    cardsHtml += `<div class="col-md-3 mb-3"><div class="card card-custom border-info"><div class="card-body"><h5 class="card-title text-info">Low</h5><div class="metric-value text-info">${bugCounts.low}</div><div class="metric-label">Can be addressed later</div></div></div></div>`;
+                }
+                severityCards.innerHTML = cardsHtml;
+            }
+
+            if (bugs.length === 0) {
+                container.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>No bugs reported.</div>';
+                return;
+            }
+
+            container.innerHTML = bugs.map((bug, i) => `
+                <div class="accordion-item bug-severity-${(bug.severity || 'low').toLowerCase()}" id="bug-card-${bug.bug_id}">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bug-collapse-${i}">
+                            <span class="badge ${getBugBadgeColor(bug.severity)} me-2">${bug.severity}</span>
+                            <span>${bug.bug_id}: ${escapeHtml(bug.title)}</span>
+                        </button>
+                    </h2>
+                    <div id="bug-collapse-${i}" class="accordion-collapse collapse" data-bs-parent="#bugsAccordion">
+                        <div class="accordion-body">
+                            <p><strong>Description:</strong> ${escapeHtml(bug.description)}</p>
+                            <p><strong>Linked Test:</strong> <a href="javascript:void(0)" onclick="scrollToTestCase('${bug.related_test_case_id}')" class="font-monospace">${bug.related_test_case_id}</a></p>
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <div class="p-2 bg-light border rounded h-100">
+                                        <h6 class="small fw-bold mb-1">Expected</h6>
+                                        <p class="small text-muted mb-0">${escapeHtml(bug.expected_result)}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-2 bg-light border rounded h-100">
+                                        <h6 class="small fw-bold mb-1">Actual</h6>
+                                        <p class="small text-danger mb-0">${escapeHtml(bug.actual_result)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ── Phase 6: Data Integrity Panel ──────────────────────────────────
+        function renderIntegrityPanel(data, validation) {
+            const panel = safelyGet('integrity-panel');
+            if (!panel) return;
+
+            const integrity = data.integrity || {};
+            const testCases = window.allTestCases || [];
+
+            // Compute failure type counts
+            let workerCrashes = 0;
+            let infraFailures = 0;
+            let confirmedApiBugs = 0;
+            let invalidTestSetups = 0;
+            let skippedByDesign = 0;
+            testCases.forEach(tc => {
+                if (tc.failure_type === 'WORKER_CRASH') workerCrashes++;
+                if (tc.failure_type === 'INFRA_FAILURE') infraFailures++;
+                if (tc.failure_type === 'INVALID_TEST_SETUP') invalidTestSetups++;
+                if (tc.failure_type === 'SKIPPED_BY_DESIGN') skippedByDesign++;
+                if (tc.confirmed_api_bug) confirmedApiBugs++;
+            });
+
+            // Determine integrity status
+            let integrityStatus, statusClass, statusIcon;
+            const hasIntegrity = integrity.runId && integrity.runId !== 'unknown-run';
+            const metaMatches = validation.valid;
+            const hasCrashes = workerCrashes > 0;
+            const fragmentsMissing = hasIntegrity && integrity.fragmentsFound === 0;
+
+            if (metaMatches && !hasCrashes && !fragmentsMissing && hasIntegrity) {
+                integrityStatus = 'HEALTHY';
+                statusClass = 'integrity-healthy';
+                statusIcon = '<i class="fas fa-check-circle text-success fa-2x"></i>';
+            } else if (!metaMatches || hasCrashes || !hasIntegrity) {
+                integrityStatus = 'DEGRADED';
+                statusClass = 'integrity-degraded';
+                statusIcon = '<i class="fas fa-exclamation-triangle text-warning fa-2x"></i>';
+            } else {
+                integrityStatus = 'UNTRUSTWORTHY';
+                statusClass = 'integrity-untrustworthy';
+                statusIcon = '<i class="fas fa-times-circle text-danger fa-2x"></i>';
+            }
+
+            // If major data loss indicators
+            if (fragmentsMissing || (testCases.length === 0 && hasIntegrity)) {
+                integrityStatus = 'UNTRUSTWORTHY';
+                statusClass = 'integrity-untrustworthy';
+                statusIcon = '<i class="fas fa-times-circle text-danger fa-2x"></i>';
+            }
+
+            let html = `
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card card-custom ${statusClass}">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    ${statusIcon}
+                                    <div class="ms-3">
+                                        <h5 class="mb-0">Integrity Status: ${integrityStatus}</h5>
+                                        <small class="text-muted">Automated trust assessment</small>
+                                    </div>
+                                </div>
+                                <table class="table table-sm data-table mb-0">
+                                    <tbody>
+                                        <tr><th width="50%">Meta/Data Match</th><td>${metaMatches ? '<span class="text-success">Match</span>' : '<span class="text-danger">Mismatch</span>'}</td></tr>
+                                        <tr><th>Worker Crashes</th><td>${workerCrashes}</td></tr>
+                                        <tr><th>Infra Failures</th><td>${infraFailures}</td></tr>
+                                        <tr><th>Invalid Test Setups</th><td>${invalidTestSetups > 0 ? '<span style="color:#9c27b0">' + invalidTestSetups + '</span>' : '0'}</td></tr>
+                                        <tr><th>Skipped by Design</th><td>${skippedByDesign}</td></tr>
+                                        <tr><th>Confirmed API Bugs</th><td>${confirmedApiBugs}</td></tr>
+                                        <tr><th>Total Test Cases</th><td>${testCases.length}</td></tr>
+                                        <tr><th>Recomputed Values Used</th><td>${!validation.valid ? '<span class="text-warning">Yes</span>' : 'No'}</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card card-custom">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-fingerprint me-2"></i>Run Identity</h5>
+                                <table class="table table-sm data-table mb-0">
+                                    <tbody>
+                                        <tr><th width="45%">Run ID</th><td><code>${escapeHtml(integrity.runId || 'N/A')}</code></td></tr>
+                                        <tr><th>Consolidated At</th><td>${formatDate(integrity.consolidatedAt)}</td></tr>
+                                        <tr><th>Expected Workers</th><td>${integrity.expectedWorkers ?? 'N/A'}</td></tr>
+                                        <tr><th>Fragments Found</th><td>${integrity.fragmentsFound ?? 'N/A'}</td></tr>
+                                        <tr><th>Worker IDs</th><td><code>${(integrity.workerIds || []).join(', ') || 'N/A'}</code></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            // Validation warnings
+            if (validation.warnings.length > 0) {
+                html += `<div class="alert alert-warning"><h6><i class="fas fa-exclamation-triangle me-2"></i>Cross-Validation Warnings</h6><ul class="mb-0">`;
+                validation.warnings.forEach(w => { html += `<li class="small">${escapeHtml(w)}</li>`; });
+                html += `</ul></div>`;
+            }
+
+            panel.innerHTML = html;
+        }
+
+        function populateEndpointDropdown(testCases) {
+            const select = safelyGet('filter-endpoint');
+            if (!select) return;
+            const endpoints = [...new Set(testCases.map(tc => tc.endpoint))].sort();
+            endpoints.forEach(ep => {
+                const opt = document.createElement('option');
+                opt.value = ep;
+                opt.textContent = ep;
+                select.appendChild(opt);
+            });
+        }
+
+        function setupFilterButtons() {
+            const btns = document.querySelectorAll('.filter-btn');
+            btns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    btns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    window.currentStatusFilter = this.getAttribute('data-filter');
+                    window.currentPage = 1;
+                    renderPaginationAndList();
+                });
+            });
+        }
+
+        function setupSearchListener() {
+            const input = safelyGet('test-search-input');
+            if (!input) return;
+
+            input.addEventListener('input', (e) => {
+                window.currentSearchTerm = e.target.value.trim().toLowerCase();
+                window.currentPage = 1;
+                renderPaginationAndList();
+            });
+        }
+
+        function clearSearch() {
+            const input = safelyGet('test-search-input');
+            if (input) {
+                input.value = '';
+                window.currentSearchTerm = '';
+                window.currentPage = 1;
+                renderPaginationAndList();
+            }
+        }
+
+        function applyFilters() {
+            window.currentMethodFilter = safelyGet('filter-method').value;
+            window.currentEndpointFilter = safelyGet('filter-endpoint').value;
+            window.currentLanguageFilter = safelyGet('filter-language').value;
+            window.currentSeverityFilter = safelyGet('filter-severity').value;
+            window.currentPage = 1;
+            renderPaginationAndList();
+        }
+
+        function resetFilters() {
+            safelyGet('filter-method').value = 'all';
+            safelyGet('filter-endpoint').value = 'all';
+            safelyGet('filter-language').value = 'all';
+            safelyGet('filter-severity').value = 'all';
+            clearSearch();
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
+            window.currentStatusFilter = 'all';
+            applyFilters();
+        }
+
+        // ── Phase 5.2: Simplified filter matching ──
+        function renderPaginationAndList() {
+            const container = safelyGet('test-cases-container');
+            if (!container) return;
+
+            const filtered = window.allTestCases.filter(tc => {
+                const s = tc.status.toUpperCase();
+                const statusMatch = window.currentStatusFilter === 'all' || s === window.currentStatusFilter;
+
+                const methodMatch = window.currentMethodFilter === 'all' || tc.http_method === window.currentMethodFilter;
+                const endpointMatch = window.currentEndpointFilter === 'all' || tc.endpoint === window.currentEndpointFilter;
+                const severityMatch = window.currentSeverityFilter === 'all' || tc.priority === window.currentSeverityFilter;
+
+                // Language filter: match if the test includes the selected language
+                let languageMatch = window.currentLanguageFilter === 'all';
+                if (!languageMatch && tc.languages && tc.languages.length > 0) {
+                    languageMatch = tc.languages.includes(window.currentLanguageFilter);
+                }
+
+                const searchMatch = !window.currentSearchTerm ||
+                    tc.test_id.toLowerCase().includes(window.currentSearchTerm) ||
+                    tc.test_name.toLowerCase().includes(window.currentSearchTerm);
+
+                return statusMatch && methodMatch && endpointMatch && severityMatch && languageMatch && searchMatch;
+            });
+
+            const totalPages = Math.ceil(filtered.length / window.itemsPerPage);
+            const start = (window.currentPage - 1) * window.itemsPerPage;
+
+            displayTestCases(filtered.slice(start, start + window.itemsPerPage), container);
+            renderPaginationControls(totalPages);
+        }
+
+        // ── Phase 5.3: Test card failure taxonomy badges ──
+        function getFailureTypeBadgeClass(ft) {
+            const map = {
+                'API_FAILURE': 'ft-api-failure',
+                'INFRA_FAILURE': 'ft-infra-failure',
+                'LIFECYCLE_BLOCKED': 'ft-lifecycle-blocked',
+                'ENVIRONMENT_NOISE': 'ft-environment-noise',
+                'SETUP_ERROR': 'ft-setup-error',
+                'INVALID_TEST_SETUP': 'ft-invalid-test-setup',
+                'SKIPPED_BY_DESIGN': 'ft-skipped-by-design',
+                'WORKER_CRASH': 'ft-worker-crash',
+                'VALIDATION_FAILURE': 'ft-validation-failure',
+                'NONE': 'ft-none',
+            };
+            return map[ft] || 'ft-none';
+        }
+
+        function renderPayloads(tc) {
+            if (tc.extended_payloads) {
+                return Object.entries(tc.extended_payloads).map(([lang, items]) => {
+                    const langBadge = lang === 'en' ? '🇺🇸 EN' : lang === 'ar' ? '🇸🇦 AR' : lang.toUpperCase();
+                    return `
+                        <div class="p-2 bg-light border-bottom fw-bold d-flex align-items-center">
+                            <span class="badge bg-secondary me-2">${langBadge}</span>
+                            <small class="text-muted">Sequence of ${items.length} requests</small>
+                        </div>
+                        ${items.map((item, idx) => `
+                            <div>
+                                <div class="d-flex border-bottom">
+                                    <div class="p-2 w-50 border-end small bg-white text-muted">Request ${idx + 1}: <code>${item.method} ${item.endpoint}</code></div>
+                                    <div class="p-2 w-50 small bg-white text-muted">Response: <code>HTTP ${item.response_status_code}</code></div>
+                                </div>
+                                <div class="row g-0 border-bottom">
+                                    <div class="col-md-6 border-end">
+                                        <div class="json-view rounded-0 border-0"><pre dir="auto" class="m-0">${formatJSON(item.request_payload)}</pre></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="json-view rounded-0 border-0"><pre dir="auto" class="m-0">${formatJSON(item.response_payload)}</pre></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    `;
+                }).join('');
+            } else {
+                // Fallback to simple single-payload view
+                return `
+                    <div class="row g-0">
+                        <div class="col-md-6 border-end">
+                            <div class="p-2 bg-light small border-bottom fw-bold">Request</div>
+                            <div class="json-view rounded-0 border-0"><pre dir="auto" class="m-0">${formatJSON(tc.request_payload)}</pre></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-2 bg-light small border-bottom fw-bold">Response</div>
+                            <div class="json-view rounded-0 border-0"><pre dir="auto" class="m-0">${formatJSON(tc.response_payload)}</pre></div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function displayTestCases(cases, container) {
+            container.innerHTML = cases.map(tc => {
+                const ftBadge = tc.failure_type && tc.failure_type !== 'NONE'
+                    ? `<span class="badge-failure-type ${getFailureTypeBadgeClass(tc.failure_type)}">${tc.failure_type}</span>`
+                    : '';
+                const confirmedBugBadge = tc.confirmed_api_bug
+                    ? `<span class="badge-confirmed-bug"><i class="fas fa-bug"></i> Confirmed API Bug</span>`
+                    : '';
+                const languageBadges = (tc.languages || []).map(lang => {
+                    const langLabel = lang === 'en' ? '🇺🇸 EN' : lang === 'ar' ? '🇸🇦 AR' : lang.toUpperCase();
+                    return `<span class="badge bg-info" title="Language: ${lang}">${langLabel}</span>`;
+                }).join(' ');
+
+                return `
+                <div id="test-case-${tc.test_id}" class="test-case-card ${getStatusClass(tc.status)}">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                <span class="badge ${getBadgeClass(tc.status)}">${tc.status}</span>
+                                <span class="badge bg-secondary">${tc.priority}</span>
+                                <span class="badge-category">${tc.category}</span>
+                                ${languageBadges}
+                                ${ftBadge}
+                                ${confirmedBugBadge}
+                                ${tc.bug ? `<span class="badge bg-danger" style="cursor:pointer" onclick="scrollToBug('${tc.bug.bug_id}')"><i class="fas fa-bug"></i> ${tc.bug.bug_id}</span>` : ''}
+                                ${tc.users_utilized?.length ? tc.users_utilized.map(u => `<span class="badge bg-teal" title="User Utilized"><i class="fas fa-user"></i> ${u}</span>`).join(' ') : ''}
+                            </div>
+                            <h6 class="mb-1 fw-bold">${tc.test_id}: ${escapeHtml(tc.test_name)}</h6>
+                            <p class="text-muted small mb-3">${escapeHtml(tc.description)}</p>
+                        </div>
+                        <div class="text-md-end">
+                            <code class="small d-block text-primary">${tc.http_method} ${tc.endpoint}</code>
+                            <small class="text-muted"><i class="fas fa-clock me-1"></i> ${tc.execution_time_ms}ms</small>
+                            ${tc.response_status_code ? `<br><small class="text-muted">HTTP ${tc.response_status_code}</small>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="accordion mb-3" id="p-acc-${tc.test_id}">
+                        <div class="accordion-item border">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed py-2 small bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#p-col-${tc.test_id}">
+                                    <i class="fas fa-exchange-alt me-2"></i> HTTP Payloads
+                                </button>
+                            </h2>
+                            <div id="p-col-${tc.test_id}" class="accordion-collapse collapse" data-bs-parent="#p-acc-${tc.test_id}">
+                                <div class="accordion-body p-0 border-top">
+                                    ${renderPayloads(tc)}
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 small">
+                        <div class="col-md-6">
+                            <strong class="d-block text-muted">Expected Result</strong>
+                            <div class="p-2 bg-light border rounded">${escapeHtml(tc.expected_result)}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong class="d-block text-muted">Actual Result</strong>
+                            <div class="p-2 bg-light border rounded ${tc.status === 'FAIL' ? 'text-danger fw-bold' : ''}">${escapeHtml(tc.actual_result)}</div>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <small class="text-muted" style="font-size:0.7rem;">Executed: ${formatDate(tc.executed_at)}</small>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderPaginationControls(totalPages) {
+            const p = safelyGet('pagination-controls');
+            if (!p) return;
+            if (totalPages <= 1) { p.innerHTML = ''; return; }
+
+            let html = `<li class="page-item ${window.currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="changePage(${window.currentPage - 1})">&laquo;</a></li>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= window.currentPage - 2 && i <= window.currentPage + 2)) {
+                    html += `<li class="page-item ${i === window.currentPage ? 'active' : ''}">
+                        <a class="page-link" href="javascript:void(0)" onclick="changePage(${i})">${i}</a></li>`;
+                } else if (i === 2 || i === window.currentPage - 3 || i === window.currentPage + 3 || i === totalPages - 1) {
+                    if ((i === 2 && window.currentPage > 4) || (i === totalPages - 1 && window.currentPage < totalPages - 3)) {
+                        html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+                }
+            }
+
+            html += `<li class="page-item ${window.currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="changePage(${window.currentPage + 1})">&raquo;</a></li>`;
+            p.innerHTML = html;
+        }
+
+        window.changePage = function (page) {
+            window.currentPage = page;
+            renderPaginationAndList();
+            safelyGet('test-cases-tab').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        window.scrollToBug = function (bugId) {
+            switchTab('bugs');
+            setTimeout(() => {
+                const el = document.getElementById(`bug-card-${bugId}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('border-primary', 'border-3');
+                    setTimeout(() => el.classList.remove('border-primary', 'border-3'), 2000);
+                    const btn = el.querySelector('.accordion-button');
+                    if (btn && btn.classList.contains('collapsed')) btn.click();
+                }
+            }, 300);
+        };
+
+        window.scrollToTestCase = function (testId) {
+            switchTab('test-cases');
+            resetFilters();
+            setTimeout(() => {
+                const index = window.allTestCases.findIndex(tc => tc.test_id === testId);
+                if (index !== -1) {
+                    window.currentPage = Math.ceil((index + 1) / window.itemsPerPage);
+                    renderPaginationAndList();
+                    setTimeout(() => {
+                        const el = document.getElementById(`test-case-${testId}`);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.classList.add('border-primary', 'border-3');
+                            setTimeout(() => el.classList.remove('border-primary', 'border-3'), 2000);
+                        }
+                    }, 100);
+                }
+            }, 300);
+        };
+
+        function switchTab(id) {
+            const btn = document.querySelector(`button[data-bs-target="#${id}"]`);
+            if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
+        }
+
+        function formatDate(str) {
+            if (!str) return '-';
+            const d = new Date(str);
+            return isNaN(d.getTime()) ? str : d.toLocaleString();
+        }
+
+        function formatJSON(obj) {
+            if (!obj) return '{}';
+            try {
+                const str = JSON.stringify(obj, null, 2);
+                return escapeHtml(str);
+            } catch {
+                return escapeHtml(String(obj));
+            }
+        }
+
+        function getStatusClass(s) {
+            s = String(s).toUpperCase();
+            if (s === 'PASS') return 'pass';
+            if (s === 'RECOVERED') return 'recovered';
+            if (s === 'FAIL') return 'fail';
+            if (s.includes('DEVIATION')) return 'warning';
+            if (s === 'ENVIRONMENT_CONSTRAINT') return 'env-constraint';
+            if (s === 'SKIPPED') return 'skipped';
+            if (s === 'INVALID_TEST_SETUP') return 'invalid-test-setup';
+            return 'blocked';
+        }
+
+        function getBadgeClass(s) {
+            s = String(s).toUpperCase();
+            if (s === 'PASS') return 'bg-success';
+            if (s === 'RECOVERED') return 'bg-teal';
+            if (s === 'FAIL') return 'bg-danger';
+            if (s.includes('DEVIATION')) return 'bg-warning text-dark';
+            if (s === 'ENVIRONMENT_CONSTRAINT') return 'bg-info';
+            if (s === 'SKIPPED') return 'bg-light text-dark border';
+            if (s === 'INVALID_TEST_SETUP') return 'bg-purple text-white';
+            return 'bg-secondary';
+        }
+
+        function getBugBadgeColor(s) {
+            s = String(s).toUpperCase();
+            if (s === 'CRITICAL') return 'bg-dark';
+            if (s === 'HIGH') return 'bg-danger';
+            if (s === 'MEDIUM') return 'bg-warning text-dark';
+            return 'bg-info';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+        }
+
+        // ── Executive Tab Rendering ──────────────────────────────────────
+        function renderExecutiveTab(meta, testCases, bugs) {
+            // Config Compliance Banner
+            const bannerEl = safelyGet('config-compliance-banner');
+            if (bannerEl && meta.executionConfig) {
+                const min = meta.executionConfig.minimum_test_cases || 0;
+                const max = meta.executionConfig.maximum_test_cases || 999;
+                const total = meta.totalTestCases || 0;
+                const respected = total >= min && total <= max;
+                const bannerClass = respected ? 'config-compliance-pass' : (total < min ? 'config-compliance-fail' : 'config-compliance-warn');
+                const icon = respected ? 'fa-check-circle text-success' : (total < min ? 'fa-times-circle text-danger' : 'fa-exclamation-triangle text-warning');
+                const status = respected ? 'COMPLIANT' : (total < min ? 'NON-COMPLIANT' : 'WARNING');
+                bannerEl.innerHTML = `
+                    <div class="card card-custom ${bannerClass} mb-4 p-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas ${icon} fa-2x me-3"></i>
+                            <div>
+                                <h5 class="mb-1">Config Compliance: ${status}</h5>
+                                <p class="mb-0 small">Executed <strong>${total}</strong> tests | Config bounds: [${min}, ${max}] | Delay: ${meta.executionConfig.request_delay || 0}s</p>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            // Bug Summary grouped by category
+            const bugSummaryEl = safelyGet('executive-bug-summary');
+            if (bugSummaryEl) {
+                const bugsByCategory = {};
+                testCases.filter(tc => tc.confirmed_api_bug || tc.status === 'FAIL').forEach(tc => {
+                    const cat = tc.category || 'General';
+                    if (!bugsByCategory[cat]) bugsByCategory[cat] = { total: 0, confirmed: 0, tests: [] };
+                    bugsByCategory[cat].total++;
+                    if (tc.confirmed_api_bug) bugsByCategory[cat].confirmed++;
+                    bugsByCategory[cat].tests.push(tc.test_id);
+                });
+
+                const securityBugs = testCases.filter(tc => tc.category?.includes('Security') && (tc.confirmed_api_bug || tc.status === 'FAIL'));
+                const locBugs = testCases.filter(tc => tc.category?.includes('Localization') && tc.status === 'FAIL');
+                const brBugs = testCases.filter(tc => ['Happy Path', 'Validation', 'Boundary', 'State'].includes(tc.category) && tc.status === 'FAIL');
+
+                let html = '<div class="row mb-4">';
+                html += `<div class="col-md-4"><div class="card card-custom p-3 h-100 border-start border-danger border-4"><h6><i class="fas fa-shield-alt text-danger me-2"></i>Security Issues</h6><div class="metric-value text-danger">${securityBugs.length}</div><p class="small text-muted mt-1 mb-0">${securityBugs.length > 0 ? securityBugs.map(t => t.test_id).slice(0, 5).join(', ') : 'None detected'}</p></div></div>`;
+                html += `<div class="col-md-4"><div class="card card-custom p-3 h-100 border-start border-warning border-4"><h6><i class="fas fa-language text-warning me-2"></i>Localization Issues</h6><div class="metric-value text-warning">${locBugs.length}</div><p class="small text-muted mt-1 mb-0">${locBugs.length > 0 ? locBugs.map(t => t.test_id).slice(0, 5).join(', ') : 'None detected'}</p></div></div>`;
+                html += `<div class="col-md-4"><div class="card card-custom p-3 h-100 border-start border-info border-4"><h6><i class="fas fa-clipboard-check text-info me-2"></i>Business Rule Issues</h6><div class="metric-value text-info">${brBugs.length}</div><p class="small text-muted mt-1 mb-0">${brBugs.length > 0 ? brBugs.map(t => t.test_id).slice(0, 5).join(', ') : 'None detected'}</p></div></div>`;
+                html += '</div>';
+
+                // Release readiness
+                const readiness = (meta.releaseReadiness || 'BLOCKED').toUpperCase();
+                const rColor = readiness === 'READY' ? 'success' : readiness === 'WARNING' ? 'warning' : 'danger';
+                const rIcon = readiness === 'READY' ? 'fa-check-circle' : readiness === 'WARNING' ? 'fa-exclamation-triangle' : 'fa-ban';
+                html += `<div class="alert alert-${rColor}"><h5><i class="fas ${rIcon} me-2"></i>Release Readiness: ${readiness}</h5>
+                    <p class="mb-0">Pass Rate: ${meta.passRate} | Effective Pass Rate: ${meta.effectivePassRate} | Compliance: ${meta.contractComplianceRate}</p></div>`;
+
+                bugSummaryEl.innerHTML = html;
+            }
+
+            // Category Breakdown (executive view)
+            const breakdownEl = safelyGet('executive-category-breakdown');
+            if (breakdownEl) {
+                const cats = {};
+                testCases.forEach(tc => {
+                    const c = tc.category || 'General';
+                    if (!cats[c]) cats[c] = { total: 0, pass: 0, fail: 0, skip: 0 };
+                    cats[c].total++;
+                    if (tc.status === 'PASS' || tc.status === 'RECOVERED') cats[c].pass++;
+                    else if (tc.status === 'FAIL') cats[c].fail++;
+                    else cats[c].skip++;
+                });
+                let html = '<h5 class="mt-4 mb-3">Category Health Overview</h5><div class="row">';
+                Object.entries(cats).sort((a, b) => b[1].fail - a[1].fail).forEach(([cat, s]) => {
+                    const rate = s.total > 0 ? ((s.pass / s.total) * 100).toFixed(0) : 0;
+                    const color = s.fail > 0 ? 'danger' : rate >= 90 ? 'success' : 'warning';
+                    html += `<div class="col-md-4 mb-3"><div class="card card-custom p-3"><div class="d-flex justify-content-between align-items-center"><h6 class="mb-0">${escapeHtml(cat)}</h6><span class="badge bg-${color}">${rate}%</span></div><div class="progress mt-2" style="height:6px"><div class="progress-bar bg-${color}" style="width:${rate}%"></div></div><small class="text-muted mt-1 d-block">${s.pass} pass | ${s.fail} fail | ${s.skip} other | ${s.total} total</small></div></div>`;
+                });
+                html += '</div>';
+                breakdownEl.innerHTML = html;
+            }
+        }
+
+        // ── Security Tab: OWASP API Top 10 Mapping ──────────────────────
+        function renderSecurityTab(testCases) {
+            const container = safelyGet('owasp-mapping-container');
+            if (!container) return;
+
+            const owaspCategories = [
+                { id: 'API1:2023', name: 'Broken Object Level Authorization', desc: 'APIs expose endpoints handling object identifiers, creating attack surface for BOLA.' },
+                { id: 'API2:2023', name: 'Broken Authentication', desc: 'Authentication mechanisms may allow attackers to assume other users\' identities.' },
+                { id: 'API3:2023', name: 'Broken Object Property Level Authorization', desc: 'Excessive data exposure or mass assignment via object properties.' },
+                { id: 'API4:2023', name: 'Unrestricted Resource Consumption', desc: 'APIs may not limit interactions that consume resources like CPU, memory, bandwidth.' },
+                { id: 'API5:2023', name: 'Broken Function Level Authorization', desc: 'Complex access control policies with different hierarchies and roles.' },
+                { id: 'API6:2023', name: 'Unrestricted Access to Sensitive Business Flows', desc: 'APIs exposing business flows may be exploited if not properly protected.' },
+                { id: 'API7:2023', name: 'Server Side Request Forgery', desc: 'SSRF flaws when API fetches a remote resource without validating the URI.' },
+                { id: 'API8:2023', name: 'Security Misconfiguration', desc: 'Missing security hardening, improper configurations, verbose errors.' },
+                { id: 'API9:2023', name: 'Improper Inventory Management', desc: 'APIs expose more endpoints than necessary, creating documentation gaps.' },
+                { id: 'API10:2023', name: 'Unsafe Consumption of APIs', desc: 'Developers tend to trust data from third-party APIs more than user input.' },
+            ];
+
+            // Map test cases to OWASP categories
+            const owaspMap = {};
+            owaspCategories.forEach(oc => { owaspMap[oc.id] = { ...oc, tests: [], passed: 0, failed: 0, total: 0 }; });
+
+            testCases.forEach(tc => {
+                if (tc.owasp_category && owaspMap[tc.owasp_category]) {
+                    const cat = owaspMap[tc.owasp_category];
+                    cat.tests.push(tc);
+                    cat.total++;
+                    if (tc.status === 'PASS' || tc.status === 'RECOVERED') cat.passed++;
+                    else if (tc.status === 'FAIL') cat.failed++;
+                }
+            });
+
+            let html = '<div class="table-responsive"><table class="table data-table owasp-table"><thead><tr><th>OWASP ID</th><th>Category</th><th>Tests</th><th>Pass</th><th>Fail</th><th>Coverage</th><th>Status</th></tr></thead><tbody>';
+
+            owaspCategories.forEach(oc => {
+                const data = owaspMap[oc.id];
+                let statusClass, statusLabel;
+                if (data.total === 0) { statusClass = 'owasp-na'; statusLabel = 'N/A'; }
+                else if (data.failed > 0) { statusClass = 'owasp-fail'; statusLabel = 'ISSUES FOUND'; }
+                else if (data.passed === data.total) { statusClass = 'owasp-pass'; statusLabel = 'SECURE'; }
+                else { statusClass = 'owasp-partial'; statusLabel = 'PARTIAL'; }
+
+                html += `<tr class="${statusClass}">
+                    <td class="fw-bold small">${oc.id}</td>
+                    <td><strong>${escapeHtml(oc.name)}</strong><br><small class="text-muted">${escapeHtml(oc.desc)}</small></td>
+                    <td class="text-center">${data.total}</td>
+                    <td class="text-center text-success">${data.passed}</td>
+                    <td class="text-center ${data.failed > 0 ? 'text-danger fw-bold' : ''}">${data.failed}</td>
+                    <td style="min-width: 100px;">${data.total > 0 ? `<div class="progress" style="height:6px"><div class="progress-bar ${data.failed > 0 ? 'bg-danger' : 'bg-success'}" style="width:${((data.passed / data.total) * 100).toFixed(0)}%"></div></div>` : '<span class="text-muted">-</span>'}</td>
+                    <td><span class="badge ${statusLabel === 'SECURE' ? 'bg-success' : statusLabel === 'ISSUES FOUND' ? 'bg-danger' : statusLabel === 'PARTIAL' ? 'bg-warning text-dark' : 'bg-light text-muted border'}">${statusLabel}</span></td>
+                </tr>`;
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+
+            // Security test coverage summary
+            const coverageEl = safelyGet('security-test-coverage');
+            if (coverageEl) {
+                const secTests = testCases.filter(tc => tc.category?.includes('Security'));
+                const secPass = secTests.filter(tc => tc.status === 'PASS' || tc.status === 'RECOVERED').length;
+                const secFail = secTests.filter(tc => tc.status === 'FAIL').length;
+                const coveredCategories = owaspCategories.filter(oc => owaspMap[oc.id].total > 0).length;
+
+                coverageEl.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-3"><div class="card card-custom p-3 text-center"><div class="metric-value text-primary">${secTests.length}</div><div class="metric-label">Security Tests</div></div></div>
+                        <div class="col-md-3"><div class="card card-custom p-3 text-center"><div class="metric-value text-success">${secPass}</div><div class="metric-label">Passed</div></div></div>
+                        <div class="col-md-3"><div class="card card-custom p-3 text-center"><div class="metric-value text-danger">${secFail}</div><div class="metric-label">Failed</div></div></div>
+                        <div class="col-md-3"><div class="card card-custom p-3 text-center"><div class="metric-value" style="color:#1a237e">${coveredCategories}/10</div><div class="metric-label">OWASP Coverage</div></div></div>
+                    </div>`;
+            }
+        }
+
+        // ── Infrastructure Tab: Rate Limit & Performance ─────────────────
+        function renderInfrastructureTab(meta, testCases) {
+            // Rate Limit Summary
+            const rlContainer = safelyGet('rate-limit-summary');
+            if (rlContainer) {
+                const rl = meta.rateLimitSummary;
+                if (rl && rl.totalEvents > 0) {
+                    rlContainer.innerHTML = `
+                        <div class="card card-custom mb-4">
+                            <div class="card-body">
+                                <h5><i class="fas fa-tachometer-alt me-2 text-warning"></i>Rate Limiting Impact</h5>
+                                <div class="row mt-3">
+                                    <div class="col-md-3"><div class="text-center"><div class="metric-value text-warning">${rl.totalEvents}</div><div class="metric-label">Total Events</div></div></div>
+                                    <div class="col-md-3"><div class="text-center"><div class="metric-value text-success">${rl.recoveredCount}</div><div class="metric-label">Recovered</div></div></div>
+                                    <div class="col-md-3"><div class="text-center"><div class="metric-value text-danger">${rl.exhaustedCount}</div><div class="metric-label">Exhausted (Failed)</div></div></div>
+                                    <div class="col-md-3"><div class="text-center"><div class="metric-value text-info">${rl.totalEvents > 0 ? ((rl.recoveredCount / rl.totalEvents) * 100).toFixed(0) : 0}%</div><div class="metric-label">Recovery Rate</div></div></div>
+                                </div>
+                                ${rl.affectedTests?.length > 0 ? `<div class="mt-3"><strong class="small">Affected Tests:</strong><div class="d-flex flex-wrap gap-1 mt-1">${rl.affectedTests.slice(0, 20).map(t => `<span class="badge bg-light text-dark border">${escapeHtml(t)}</span>`).join('')}${rl.affectedTests.length > 20 ? `<span class="badge bg-secondary">+${rl.affectedTests.length - 20} more</span>` : ''}</div></div>` : ''}
+                            </div>
+                        </div>`;
+                } else {
+                    rlContainer.innerHTML = `<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>No rate limiting events detected during this execution run.</div>`;
+                }
+            }
+
+            // Performance Summary
+            const perfContainer = safelyGet('performance-summary');
+            if (perfContainer) {
+                const perfTests = testCases.filter(tc => tc.category?.includes('Performance'));
+                const allTimes = testCases.filter(tc => tc.execution_time_ms > 0).map(tc => tc.execution_time_ms);
+                const avgTime = allTimes.length > 0 ? (allTimes.reduce((a, b) => a + b, 0) / allTimes.length).toFixed(0) : 0;
+                const maxTime = allTimes.length > 0 ? Math.max(...allTimes) : 0;
+                const minTime = allTimes.length > 0 ? Math.min(...allTimes) : 0;
+                const p95 = allTimes.length > 0 ? allTimes.sort((a, b) => a - b)[Math.floor(allTimes.length * 0.95)] : 0;
+
+                const slowTests = testCases.filter(tc => tc.execution_time_ms > 5000).sort((a, b) => b.execution_time_ms - a.execution_time_ms);
+
+                perfContainer.innerHTML = `
+                    <h5><i class="fas fa-chart-line me-2 text-primary"></i>Performance Overview</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-3"><div class="card card-custom p-3 text-center"><div class="metric-value text-primary">${avgTime}ms</div><div class="metric-label">Avg Response</div></div></div>
+                        <div class="col-md-3"><div class="card card-custom p-3 text-center"><div class="metric-value text-success">${minTime}ms</div><div class="metric-label">Fastest</div></div></div>
+                        <div class="col-md-3"><div class="card card-custom p-3 text-center"><div class="metric-value ${maxTime > 10000 ? 'text-danger' : 'text-warning'}">${maxTime}ms</div><div class="metric-label">Slowest</div></div></div>
+                        <div class="col-md-3"><div class="card card-custom p-3 text-center"><div class="metric-value text-info">${p95}ms</div><div class="metric-label">P95 Latency</div></div></div>
+                    </div>
+                    ${slowTests.length > 0 ? `<div class="card card-custom p-3"><h6 class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Slow Tests (>5s)</h6><table class="table table-sm mb-0"><thead><tr><th>Test ID</th><th>Name</th><th>Time</th></tr></thead><tbody>${slowTests.slice(0, 10).map(t => `<tr><td class="fw-bold small">${escapeHtml(t.test_id)}</td><td class="small">${escapeHtml(t.test_name)}</td><td class="text-danger fw-bold">${t.execution_time_ms}ms</td></tr>`).join('')}</tbody></table></div>` : '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>No slow tests detected (all under 5s threshold).</div>'}`;
+            }
+        }
+    </script>
+</body>
+
+</html>

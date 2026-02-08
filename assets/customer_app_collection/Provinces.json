@@ -1,0 +1,190 @@
+{
+  "info": {
+    "_postman_id": "2b9e75ac-3b32-4f67-9066-6a027e1fd5bb",
+    "name": "Provinces",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "49589172"
+  },
+  "item": [
+    {
+      "name": "Get Provinces",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text",
+            "disabled": true
+          },
+          {
+            "key": "Accept-Language",
+            "value": "ar",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE}}/api/provinces",
+          "host": [
+            "{{BASE}}"
+          ],
+          "path": [
+            "api",
+            "provinces"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "zones",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text",
+            "disabled": true
+          },
+          {
+            "key": "Accept-Language",
+            "value": "ar",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE}}/api/zones",
+          "host": [
+            "{{BASE}}"
+          ],
+          "path": [
+            "api",
+            "zones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Province Zones",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Accept-Language",
+            "value": "en",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE}}/api/provinces/4/zones",
+          "host": [
+            "{{BASE}}"
+          ],
+          "path": [
+            "api",
+            "provinces",
+            "4",
+            "zones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "validate-location",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Accept-Language",
+            "value": "ar",
+            "type": "text"
+          },
+          {
+            "key": "province_zone_id",
+            "value": "{{zone}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE}}/api/provinces/validate-location?lat={{lat}}&long={{long}}",
+          "host": [
+            "{{BASE}}"
+          ],
+          "path": [
+            "api",
+            "provinces",
+            "validate-location"
+          ],
+          "query": [
+            {
+              "key": "lat",
+              "value": "{{lat}}"
+            },
+            {
+              "key": "long",
+              "value": "{{long}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{TOKEN}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE",
+      "value": ""
+    },
+    {
+      "key": "TOKEN",
+      "value": ""
+    }
+  ]
+}
