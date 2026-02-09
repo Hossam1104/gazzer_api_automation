@@ -126,8 +126,9 @@ export class RequestGovernor {
    *   1. Wait for system pause to end (if active)
    *   2. Wait for concurrency slot (max 2 active)
    *   3. Enforce minimum inter-request delay
-   *   4. Execute action
-   *   5. Release slot, notify next queued request
+   *   4. Execute action and measure latency
+   *   5. Adjust delay based on response time (adaptive pacing)
+   *   6. Release slot, notify next queued request
    *
    * LOW-priority requests yield to higher-priority ones in the queue.
    */
@@ -143,9 +144,16 @@ export class RequestGovernor {
     // Enforce minimum inter-request delay
     await this.enforceDelay();
 
+    const startTime = Date.now();
     try {
       this.totalRequests++;
-      return await action();
+      const result = await action();
+      
+      // Adaptive pacing: adjust delay based on response time
+      const latency = Date.now() - startTime;
+      this.adjustDelayBasedOnLatency(latency);
+      
+      return result;
     } finally {
       this.releaseSlot();
     }
@@ -326,6 +334,44 @@ export class RequestGovernor {
         this.pauseResolve = null;
       }, duration);
     });
+  }
+
+  /**
+   * Adjusts inter-request delay based on observed API latency.
+   * High latency (>2s) suggests backend stress → increase delay slightly.
+   * Low latency (<500ms) suggests capacity → decrease delay gradually.
+   */
+  private adjustDelayBasedOnLatency(latencyMs: number): void {
+    const HIGH_LATENCY_THRESHOLD = 2000; // 2s
+    const LOW_LATENCY_THRESHOLD = 500;   // 500ms
+    
+    if (latencyMs > HIGH_LATENCY_THRESHOLD) {
+      // Backend is slow, increase delay to reduce pressure
+      const oldDelay = this.currentDelay;
+      this.currentDelay = Math.min(
+        this.currentDelay * 1.2, // Increase by 20%
+        3000 // Cap at 3s
+      );
+      if (Math.abs(this.currentDelay - oldDelay) > 10) {
+        console.log(
+          `[Governor] High latency detected (${latencyMs}ms). ` +
+          `Increasing delay: ${Math.round(oldDelay)}ms → ${Math.round(this.currentDelay)}ms`
+        );
+      }
+    } else if (latencyMs < LOW_LATENCY_THRESHOLD && this.consecutive429s === 0) {
+      // Backend is fast and no rate limits, decrease delay to speed up
+      const oldDelay = this.currentDelay;
+      this.currentDelay = Math.max(
+        this.config.minInterRequestDelayMs,
+        this.currentDelay * 0.95 // Decrease by 5%
+      );
+      if (Math.abs(this.currentDelay - oldDelay) > 10) {
+        console.log(
+          `[Governor] Low latency detected (${latencyMs}ms). ` +
+          `Decreasing delay: ${Math.round(oldDelay)}ms → ${Math.round(this.currentDelay)}ms`
+        );
+      }
+    }
   }
 
   private pruneWindow(now: number): void {

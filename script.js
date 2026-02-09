@@ -27,6 +27,7 @@
 
 let allReports = []; // Stores parsed report data
 let manifestData = null; // Manifest from /reports/manifest.json
+let isLoadingReports = false; // Flag to prevent concurrent loading
 
 // ============================================================================
 // CONFIGURATION
@@ -418,6 +419,14 @@ function generateReportCard(reportInfo, metrics) {
  * Main entry point for dashboard initialization.
  */
 async function loadReports() {
+  // Prevent concurrent loading
+  if (isLoadingReports) {
+    console.warn('[Dashboard] Load already in progress, skipping...');
+    return;
+  }
+
+  isLoadingReports = true;
+
   try {
     // Step 1: Load manifest
     console.log('[Dashboard] Loading manifest...');
@@ -479,6 +488,8 @@ async function loadReports() {
     } else {
       showToast(`Error loading reports: ${err.message}`, 'error');
     }
+  } finally {
+    isLoadingReports = false;
   }
 }
 
