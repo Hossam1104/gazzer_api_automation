@@ -13,8 +13,8 @@
  *                               Retry with alternate user
  *
  * The two-user rotation pool allows the suite to continue when one account
- * hits rate limits. If both users are exhausted, a RATE_LIMIT_EXHAUSTED error
- * is thrown and the test is classified as ENVIRONMENT_CONSTRAINT in the report.
+ * hits rate limits. Multi-cycle rotation (3 cycles with progressive cooldowns)
+ * maximizes recovery before declaring RATE_LIMIT_EXHAUSTED.
  *
  * @see {@link RateLimitError} — custom error that triggers failover
  * @see {@link MultiUserManager} — manages the two-user pool
@@ -25,9 +25,21 @@ import { APIResponse } from '@playwright/test';
 import { ClientAddressesController } from '@/api/controllers/ClientAddressesController';
 import { MultiUserManager } from '@/utils/multiUserManager';
 import { ExecutionTracker } from '@/utils/executionTracker';
+import { RequestGovernor } from '@/utils/requestGovernor';
 
 /**
  * Custom error thrown when all retry attempts are exhausted on HTTP 429 (Too Many Requests).
+ * Explicitly typed to allow ReportExporter to classify this as INFRA_PRESSURE (not a bug).
+ */
+export class RateLimitExhaustedError extends Error {
+  constructor(message: string) {
+    super(`[INFRA_PRESSURE] ${message}`);
+    this.name = 'RateLimitExhaustedError';
+  }
+}
+
+/**
+ * Custom error thrown when a single request hits rate limits.
  * Caught by ResilientClientAddresses to trigger cross-user failover.
  */
 export class RateLimitError extends Error {
@@ -49,7 +61,7 @@ type RequestOptions = {
 /**
  * Wraps {@link ClientAddressesController} with transparent rate-limit failover.
  * All CRUD methods delegate through {@link executeWithFailover} which catches
- * {@link RateLimitError} and retries once on the alternate user.
+ * {@link RateLimitError} and retries with multi-cycle user rotation.
  */
 export class ResilientClientAddresses {
   constructor(
@@ -58,44 +70,71 @@ export class ResilientClientAddresses {
   ) {}
 
   /**
-   * Executes an API action with single-retry failover on rate limiting.
+   * Executes an API action with multi-cycle rotation failover on rate limiting.
    *
-   * Flow:
-   *   1. Record active user for the test
-   *   2. Execute action
-   *   3. On RateLimitError → switch user → retry once
-   *   4. On second RateLimitError → record exhaustion → throw RATE_LIMIT_EXHAUSTED
+   * Flow per cycle:
+   *   1. Record active user, execute action
+   *   2. On RateLimitError → switch user → retry on alternate user
+   *   3. If alternate also fails → cooldown (5s * 2^cycle) → next cycle
+   *   4. After MAX_CYCLES (3) → throw RATE_LIMIT_EXHAUSTED
    *
    * Non-RateLimitError exceptions propagate immediately (no failover for 4xx/5xx).
-   *
-   * @param action - The API call to execute
-   * @param testId - Test identifier for tracing and user recording
-   * @returns The API response from either the primary or failover attempt
    */
   private async executeWithFailover<T extends APIResponse>(
     action: () => Promise<T>,
     testId: string
   ): Promise<T> {
-    this.userManager.recordUserForTest(testId);
-    try {
-      return await action();
-    } catch (err) {
-      // Only RateLimitError triggers user failover; all other errors bubble up.
-      if (err instanceof RateLimitError) {
+    const MAX_CYCLES = 3;
+    const COOLDOWN_BASE = 5000;
+    const governor = RequestGovernor.getInstance();
+
+    for (let cycle = 0; cycle < MAX_CYCLES; cycle++) {
+      this.userManager.recordUserForTest(testId);
+      try {
+        // Execute through governor (throttling + concurrency cap)
+        return await governor.execute(
+          () => action(),
+          { testId, priority: 'NORMAL', label: 'ResilientClient' }
+        );
+      } catch (err) {
+        if (!(err instanceof RateLimitError)) throw err;
+
+        // Try switching user first (cheaper than waiting)
+        const currentUser = this.userManager.getActiveUser();
         this.userManager.switchUser('rate limit', testId);
-        this.userManager.recordUserForTest(testId);
-        try {
-          return await action();
-        } catch (err2) {
-          if (err2 instanceof RateLimitError) {
-            ExecutionTracker.recordRateLimit(testId, 'Rate limit exhausted for both users');
-            throw new Error(`[RATE_LIMIT_EXHAUSTED] ${err2.message}`);
+        const switched = this.userManager.getActiveUser() !== currentUser;
+
+        if (switched) {
+          this.userManager.recordUserForTest(testId);
+          try {
+             // Retry with new user through governor
+            return await governor.execute(
+              () => action(),
+              { testId, priority: 'HIGH', label: 'ResilientClient-Retry' }
+            );
+          } catch (err2) {
+            if (!(err2 instanceof RateLimitError)) throw err2;
+            // Alternate user also rate-limited — fall through to cooldown
           }
-          throw err2;
         }
+
+        // Both users rate-limited — cooldown before next cycle
+        if (cycle < MAX_CYCLES - 1) {
+          const cooldown = COOLDOWN_BASE * Math.pow(2, cycle);
+          ExecutionTracker.recordRateLimit(testId, `Cycle ${cycle + 1}/${MAX_CYCLES} cooldown ${cooldown}ms`);
+          
+          // Use governor to pause if needed, or just sleep
+          await new Promise(r => setTimeout(r, cooldown));
+          continue;
+        }
+
+        // All cycles exhausted
+        ExecutionTracker.recordRateLimit(testId, 'All rotation cycles exhausted');
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        throw new RateLimitExhaustedError(`Rate limit exhausted for ${testId} after ${MAX_CYCLES} cycles. ${errorMessage}`);
       }
-      throw err;
     }
+    throw new RateLimitExhaustedError('All rotation cycles failed without explicit error capture.');
   }
 
   /** Lists addresses with failover support. Records Accept-Language if provided. */

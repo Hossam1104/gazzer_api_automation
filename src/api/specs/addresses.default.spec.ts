@@ -50,13 +50,16 @@ test.describe('Client Addresses - Set Default', () => {
       await ensureAddressCapacity(tracker, apiContext, testId);
       // 1. Create new address
       const payload = generateUniqueAddress(`${testInfo.workerIndex}-${language}`);
-      const createRes = await controller.createAddress(payload, { testId: `${testId}-setup`, acceptLanguage: language });
+      let createRes = await controller.createAddress(payload, { testId: `${testId}-setup`, acceptLanguage: language });
       if (createRes.status() === 400) {
         const cBody = await ResponseHelper.safeJson(createRes);
         const msg = (cBody.message || '').toLowerCase();
         if (msg.includes('20') || msg.includes('limit') || msg.includes('maximum') || msg.includes('delete an existing')) {
-          console.warn(`[${testId}] Address limit reached during ${language} iteration — skipping this language.`);
-          return;
+          await ensureAddressCapacity(tracker, apiContext, testId);
+          createRes = await controller.createAddress(payload, { testId: `${testId}-retry`, acceptLanguage: language });
+          if (createRes.status() !== 200) {
+            throw new Error(`[INFRA_PRESSURE] Address limit persists after cleanup for ${testId} [${language}]`);
+          }
         }
       }
       expect(createRes.status(), 'Create failed').toBe(200);
@@ -82,20 +85,22 @@ test.describe('Client Addresses - Set Default', () => {
         assertLocalizedMessage(body.message, language);
       }
 
-      // Wait for API to persist the default change (eventual consistency)
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // 3. Verify Single Default (BR-004) — polling for eventual consistency
+      let verified = false;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await new Promise(r => setTimeout(r, 300 * Math.pow(2, attempt)));
+        const verifyRes = await controller.listAddresses({ per_page: '100' }, { testId: `${testId}-verify-${attempt}`, acceptLanguage: language });
+        const verifyBody = await ResponseHelper.safeJson(verifyRes);
+        if (!verifyBody?.data) continue;
 
-      // 3. Verify Single Default (BR-004)
-      const verifyRes = await controller.listAddresses({ per_page: '100' }, { testId: `${testId}-verify`, acceptLanguage: language });
-      const verifyBody = await ResponseHelper.safeJson(verifyRes);
-      expect(verifyBody?.data, 'List response has no data').toBeDefined();
-
-      const validation = BusinessRuleValidator.validateSingleDefaultAddress(verifyBody.data);
-      expect(validation.valid).toBe(true);
-
-      const newDefault = verifyBody.data.find((a: any) => a.is_default === true || a.is_default === 1);
-      expect(newDefault, 'No default address found after set').toBeTruthy();
-      expect(newDefault.id).toBe(created.id);
+        const validation = BusinessRuleValidator.validateSingleDefaultAddress(verifyBody.data);
+        const newDefault = verifyBody.data.find((a: any) => (a.is_default === true || a.is_default === 1) && a.id === created.id);
+        if (newDefault && validation.valid) {
+          verified = true;
+          break;
+        }
+      }
+      expect(verified, 'Default address not stabilized after polling').toBe(true);
     });
   });
 });

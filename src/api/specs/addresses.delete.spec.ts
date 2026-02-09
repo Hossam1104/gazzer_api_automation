@@ -36,13 +36,16 @@ test.describe('Client Addresses - Delete', () => {
       await ensureAddressCapacity(tracker, apiContext, testId);
       // 1. Create an address
       const payload = generateUniqueAddress(`${testInfo.workerIndex}-${language}`);
-      const createRes = await controller.createAddress(payload, { testId: `${testId}-setup`, acceptLanguage: language });
+      let createRes = await controller.createAddress(payload, { testId: `${testId}-setup`, acceptLanguage: language });
       if (createRes.status() === 400) {
         const cBody = await ResponseHelper.safeJson(createRes);
         const msg = (cBody.message || '').toLowerCase();
         if (msg.includes('20') || msg.includes('limit') || msg.includes('maximum') || msg.includes('delete an existing')) {
-          console.warn(`[${testId}] Address limit reached during ${language} iteration — skipping this language.`);
-          return;
+          await ensureAddressCapacity(tracker, apiContext, testId);
+          createRes = await controller.createAddress(payload, { testId: `${testId}-retry`, acceptLanguage: language });
+          if (createRes.status() !== 200) {
+            throw new Error(`[INFRA_PRESSURE] Address limit persists after cleanup for ${testId} [${language}]`);
+          }
         }
       }
       expect(createRes.status(), 'Create failed').toBe(200);
@@ -60,8 +63,7 @@ test.describe('Client Addresses - Delete', () => {
         if (otherAddr) {
           await controller.setDefaultAddress({ address_id: otherAddr.id }, { testId: `${testId}-undefault` });
         } else {
-          console.warn(`[${testId}] Only one address exists and it's default — cannot un-default. Skipping delete.`);
-          return;
+          throw new Error(`[INFRA_PRESSURE] Only one address exists and it is default — cannot un-default for ${testId}`);
         }
       }
 
@@ -102,12 +104,25 @@ test.describe('Client Addresses - Delete', () => {
     const listBody = await ResponseHelper.safeJson(listRes);
 
     expect(listBody?.data, 'List response has no data').toBeDefined();
-    const defaultAddr = listBody.data.find((a: any) => a.is_default === true || a.is_default === 1);
+    let defaultAddr = listBody.data.find((a: any) => a.is_default === true || a.is_default === 1);
 
+    // ZERO-SKIP: If no default exists, create one and set as default
     if (!defaultAddr) {
-      console.log(`[${testId}] Skipping: No default address found.`);
-      test.skip();
-      return;
+      console.log(`[${testId}] No default address found. Creating one for BR-003 test...`);
+      await ensureAddressCapacity(tracker, apiContext, testId);
+      const setupPayload = generateUniqueAddress('default-setup');
+      const createRes = await controller.createAddress(setupPayload, { testId: `${testId}-setup` });
+      if (createRes.status() === 200) {
+        const created = await findCreatedAddress(controller as any, 'name', setupPayload.name);
+        if (created) {
+          await controller.setDefaultAddress({ address_id: created.id }, { testId: `${testId}-set-default` });
+          tracker.trackCreation(created.id);
+          defaultAddr = created;
+        }
+      }
+      if (!defaultAddr) {
+        throw new Error('[INFRA_PRESSURE] Cannot set up default address for BR-003 test');
+      }
     }
 
     await runWithLanguages(['en', 'ar'], async (language) => {

@@ -329,43 +329,6 @@ export function createSecurityTestPayload(
 }
 
 /**
- * Creates a batch of security test payloads for a specific attack category.
- *
- * @param category - Attack category ('sql', 'xss', 'path', 'cmd', 'nosql', 'ldap', 'format')
- * @param targetField - Field to inject into
- * @returns Array of payloads with attack strings injected
- *
- * Usage:
- *   const payloads = createSecurityTestBatch('xss', 'name');
- *   for (const payload of payloads) {
- *     const res = await controller.createAddress(payload.data, { testId });
- *     // Test each XSS variant
- *   }
- */
-export function createSecurityTestBatch(
-  category: 'sql' | 'xss' | 'path' | 'cmd' | 'nosql' | 'ldap' | 'format',
-  targetField: 'address' | 'street' | 'name' | 'building' | 'floor' = 'address'
-): Array<{ name: string; description: string; payload: any }> {
-  const categoryMap: Record<string, any[]> = {
-    sql: SecurityPayloads.sqlInjection,
-    xss: SecurityPayloads.xss,
-    path: SecurityPayloads.pathTraversal,
-    cmd: SecurityPayloads.commandInjection,
-    nosql: SecurityPayloads.noSqlInjection,
-    ldap: SecurityPayloads.ldapInjection,
-    format: SecurityPayloads.formatString
-  };
-
-  const attacks = categoryMap[category] || [];
-
-  return attacks.map(attack => ({
-    name: attack.name,
-    description: attack.description,
-    payload: createSecurityTestPayload(attack.value, targetField)
-  }));
-}
-
-/**
  * Security test validation helper.
  * Checks if API response indicates a potential vulnerability.
  *
@@ -459,44 +422,3 @@ export function isUnsanitized(fieldValue: string, originalAttack: string): boole
   return dangerousPatterns.some(pattern => pattern.test(fieldValue));
 }
 
-/**
- * Complete test scenario builder for security testing.
- *
- * @param category - Attack category
- * @param targetField - Field to test
- * @returns Array of test scenarios with expected behavior
- *
- * Usage:
- *   const scenarios = buildSecurityScenarios('xss', 'name');
- *   for (const scenario of scenarios) {
- *     // Execute test
- *     // Validate using scenario.expectedStatuses
- *     // Check sanitization using scenario.checkSanitization
- *   }
- */
-export function buildSecurityScenarios(
-  category: 'sql' | 'xss' | 'path' | 'cmd' | 'nosql',
-  targetField: 'address' | 'street' | 'name' | 'building' | 'floor' = 'address'
-): Array<{
-  id: string;
-  name: string;
-  description: string;
-  payload: any;
-  attackValue: string;
-  expectedStatuses: number[];
-  checkSanitization: boolean;
-  severity: 'CRITICAL' | 'HIGH';
-}> {
-  const batch = createSecurityTestBatch(category, targetField);
-
-  return batch.map((item, index) => ({
-    id: `SEC-${category.toUpperCase()}-${index + 1}`,
-    name: item.name,
-    description: item.description,
-    payload: item.payload,
-    attackValue: item.payload[targetField],
-    expectedStatuses: [200, 400, 422],  // Never 500
-    checkSanitization: true,
-    severity: (category === 'sql' || category === 'xss' || category === 'cmd') ? 'CRITICAL' : 'HIGH'
-  }));
-}

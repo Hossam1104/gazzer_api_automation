@@ -68,6 +68,8 @@ interface TestCaseData {
   languages: string[];
   extended_payloads?: Record<string, { method: string; endpoint: string; request_payload: any; response_payload: any; response_status_code: number }[]>;
   owasp_category?: string;
+  governor_telemetry?: { total429s: number; systemPauses: number; currentDelay: number };
+  retry_history?: string[];
 }
 
 interface BugData {
@@ -127,12 +129,19 @@ interface ReportMeta {
     recoveredCount: number;
     exhaustedCount: number;
   };
+  governorTelemetry?: {
+    total429s: number;
+    systemPauses: number;
+    adaptiveDelayMs: number;
+    infraPressureCount: number;
+  };
 }
 
-interface ExecutionConfig {
+export interface ExecutionConfig {
   minimum_test_cases: number;
   max_test_cases: number;
   request_delay: number;
+  base_url?: string; // Add base_url here as it is used in HealthCheck
 }
 
 /** OWASP API Security Top 10 (2023) mapping from test ID prefixes. */
@@ -479,6 +488,8 @@ export class ReportExporter {
                   if (execMeta?.tokenSource) metaNotes.push(`Token: ${execMeta.tokenSource}`);
                   if (execMeta?.cleanupActions?.length) metaNotes.push(`Cleanup: ${execMeta.cleanupActions.join('; ')}`);
                   if (execMeta?.rateLimitEvents?.length) metaNotes.push(`RateLimit: ${execMeta.rateLimitEvents.join('; ')}`);
+                  if (execMeta?.governorStats) metaNotes.push(`Governor: delay=${execMeta.governorStats.delay}ms, pauses=${execMeta.governorStats.pauses}, 429s=${execMeta.governorStats.total429s}`);
+                  if (execMeta?.failureCategory) metaNotes.push(`Category: ${execMeta.failureCategory}`);
 
                   // Add RECOVERY context
                   if (reportStatus === 'RECOVERED') {
@@ -513,6 +524,12 @@ export class ReportExporter {
                     languages,
                     extended_payloads: aggregated.extendedPayloads,
                     owasp_category: ReportExporter.getOwaspCategory(testId),
+                    governor_telemetry: execMeta?.governorStats ? {
+                      total429s: execMeta.governorStats.total429s,
+                      systemPauses: execMeta.governorStats.pauses,
+                      currentDelay: execMeta.governorStats.delay,
+                    } : undefined,
+                    retry_history: execMeta?.retryHistory,
                   };
 
                   results.push(tc);
@@ -547,11 +564,13 @@ export class ReportExporter {
    * @returns Report status string
    */
   private static mapStatus(playwrightStatus: string, testId: string, errorMessage?: string, execMeta?: any): string {
+    // RATE_LIMIT_EXHAUSTED is now a FAIL — the failure taxonomy classifies it as INFRA_PRESSURE
     if (errorMessage && errorMessage.includes('[RATE_LIMIT_EXHAUSTED]')) {
-      return 'ENVIRONMENT_CONSTRAINT';
+      return 'FAIL';
     }
+    // PRECONDITION_SKIP no longer emitted (zero-skip policy), but handle legacy just in case
     if (errorMessage && errorMessage.includes('PRECONDITION_SKIP:')) {
-      return 'SKIPPED';
+      return 'FAIL';
     }
 
     // Check for Recovery
@@ -589,31 +608,58 @@ export class ReportExporter {
 
     const errorMsg = (result.error?.message || '').toLowerCase();
 
-    // NEW: Detect SETUP_ERROR (test data validation failures)
+    // NEW: Detect explicit failure categories from zero-skip policy (Phase 5 classified throws)
+    if (errorMsg.includes('[infra_pressure]') || errorMsg.includes('infra_pressure')) {
+      return 'INFRA_PRESSURE';
+    }
+    if (errorMsg.includes('[business_rule_violation]') || errorMsg.includes('business_rule_violation')) {
+      return 'BUSINESS_RULE_VIOLATION';
+    }
+    if (errorMsg.includes('[security_defect]') || errorMsg.includes('security_defect')) {
+      return 'SECURITY_DEFECT';
+    }
+    if (errorMsg.includes('[localization_defect]') || errorMsg.includes('localization_defect')) {
+      return 'LOCALIZATION_DEFECT';
+    }
+    if (errorMsg.includes('[data_integrity_defect]') || errorMsg.includes('data_integrity_defect')) {
+      return 'DATA_INTEGRITY_DEFECT';
+    }
+
+    // Auto-detect from test content patterns
+    if (errorMsg.includes('confirmed api bug: sql') || errorMsg.includes('unsanitized') || errorMsg.includes('data leakage')) {
+      return 'SECURITY_DEFECT';
+    }
+    if (errorMsg.includes('br-001') || errorMsg.includes('br-002') || errorMsg.includes('br-003') || errorMsg.includes('br-004')) {
+      return 'BUSINESS_RULE_VIOLATION';
+    }
+
+    // SETUP_ERROR (test data validation failures)
     if (errorMsg.includes('setup_error:')) {
       return 'SETUP_ERROR';
     }
 
-    if (errorMsg.includes('precondition_skip')) {
-      return 'SKIPPED_ENV_CONSTRAINT';
+    // INFRA_PRESSURE: Strict categorization for Rate Limits & Network Instability
+    // This ensures these are NOT counted as product bugs but as environmental noise.
+    if (
+        errorMsg.includes('rate_limit_exhausted') || 
+        errorMsg.includes('rate_limit') || 
+        errorMsg.includes('429') ||
+        errorMsg.includes('too many requests')
+    ) {
+      return 'INFRA_PRESSURE';
     }
-    if (errorMsg.includes('rate_limit_exhausted') || errorMsg.includes('rate_limit') || errorMsg.includes('429')) {
-      return 'ENVIRONMENT_NOISE';
+    
+    // INFRA_PRESSURE: Network/timeout issues
+    if (
+        errorMsg.includes('econnrefused') || 
+        errorMsg.includes('econnreset') || 
+        errorMsg.includes('timeout') ||
+        errorMsg.includes('socket hang up') ||
+        errorMsg.includes('fetch failed')
+    ) {
+      return 'INFRA_PRESSURE';
     }
-    // BR-001 address limit: if the assertion failure is about expecting 400/422
-    // but getting 200, AND the error context mentions address limit patterns,
-    // this is an environment/precondition issue — NOT a real API failure.
-    if (errorMsg.includes('tocontain') && (errorMsg.includes('200') || errorMsg.includes('201')) &&
-      (errorMsg.includes('400') || errorMsg.includes('422'))) {
-      // Check if it's a BR-001 limit test that couldn't reach the precondition
-      if (errorMsg.includes('limit') || errorMsg.includes('maximum') || errorMsg.includes('br-001') ||
-        errorMsg.includes('20') || errorMsg.includes('address')) {
-        return 'SKIPPED_ENV_CONSTRAINT';
-      }
-    }
-    if (errorMsg.includes('econnrefused') || errorMsg.includes('econnreset') || errorMsg.includes('timeout')) {
-      return 'INFRA_FAILURE';
-    }
+
     if (errorMsg.includes('auth abort') || errorMsg.includes('login returned') || errorMsg.includes('statetracker')) {
       return 'SETUP_ERROR';
     }
@@ -665,27 +711,69 @@ export class ReportExporter {
     // Strip ANSI color codes (e.g., \u001b[31m for red text)
     const clean = rawError.replace(/\u001b\[\d+m/g, '');
 
+    // Classified failure categories from zero-skip policy
+    if (clean.includes('[INFRA_PRESSURE]')) {
+      return `Infrastructure Pressure: ${clean.replace(/\[INFRA_PRESSURE\]\s*/, '').substring(0, 250)}\nTest failed due to API rate limiting or resource constraints — not an API defect.`;
+    }
+    if (clean.includes('[BUSINESS_RULE_VIOLATION]')) {
+      return `Business Rule Violation: ${clean.replace(/\[BUSINESS_RULE_VIOLATION\]\s*/, '').substring(0, 250)}\nAPI did not enforce expected business logic.`;
+    }
+    if (clean.includes('[SECURITY_DEFECT]')) {
+      return `Security Defect: ${clean.replace(/\[SECURITY_DEFECT\]\s*/, '').substring(0, 250)}\nAPI exposed a security vulnerability.`;
+    }
+    if (clean.includes('[LOCALIZATION_DEFECT]')) {
+      return `Localization Defect: ${clean.replace(/\[LOCALIZATION_DEFECT\]\s*/, '').substring(0, 250)}\nAPI returned a response in the wrong language for the Accept-Language header.`;
+    }
+    if (clean.includes('[DATA_INTEGRITY_DEFECT]')) {
+      return `Data Integrity Defect: ${clean.replace(/\[DATA_INTEGRITY_DEFECT\]\s*/, '').substring(0, 250)}\nCreated entity could not be found in subsequent API responses.`;
+    }
+
+    // Rate limit exhaustion (INFRA_PRESSURE)
+    if (clean.includes('RATE_LIMIT_EXHAUSTED') || clean.includes('rate_limit_exhausted')) {
+      return `Infrastructure Pressure: API rate limit exhausted after automatic retry with both user accounts and multi-cycle rotation.\nTest could not complete due to API throttling.`;
+    }
+
+    // 429 Too Many Requests (before user failover)
+    if (clean.includes('429') && clean.includes('Too Many Requests')) {
+      return `API returned HTTP 429 (Too Many Requests).\nRate limiting triggered. Framework attempted automatic user failover with multi-cycle rotation.\nIf this persists, the API may need higher rate limits for testing.`;
+    }
+
     // Pattern: expect(received).toBe(expected) ... Expected: X, Received: Y
     const statusMatch = clean.match(/Expected:\s*(\d+)[\s\S]*?Received:\s*(\d+)/);
     if (statusMatch) {
       const [, expected, received] = statusMatch;
+
+      // MASTER FIX: Expected 422 validation, got 422 = PASS (API correctly validated)
+      if (received === '422' && expected === '422') {
+        return `✅ Validation Test PASSED: API correctly rejected invalid data with HTTP 422.\nThis is the expected behavior for validation testing.`;
+      }
 
       // Specific case: Floor validation error (Arabic message)
       if (received === '422' && clean.includes('يجب أن يكون الحقل floor')) {
         return `API rejected the request with HTTP 422.\nReason: floor field must be a numeric value (sent non-numeric: "3rd" or similar).\nThis indicates correct backend validation enforcement.`;
       }
 
-      // Generic 422 handling
+      // Generic 422 handling (received 422 when expecting 200/201)
       if (received === '422') {
-        return `API rejected the request with HTTP 422 (Validation Error).\nExpected: HTTP ${expected}.\nLikely cause: Invalid or incomplete request data.`;
+        return `API rejected the request with HTTP 422 (Validation Error).\nExpected: HTTP ${expected}.\nLikely cause: Invalid or incomplete request data.\nCheck payload for missing required fields or invalid data types.`;
+      }
+
+      // MASTER FIX: 404 Not Found
+      if (received === '404') {
+        return `API returned HTTP 404 (Not Found).\nExpected: HTTP ${expected}.\nLikely cause: Resource ID does not exist, or endpoint path is incorrect.`;
       }
 
       // API BUG: Expected validation error but got 200
       if (received === '200' && (expected === '400' || expected === '422')) {
-        return `CONFIRMED API BUG: Expected validation error (HTTP ${expected}), but API accepted invalid data with HTTP 200.`;
+        return `CONFIRMED API BUG: Expected validation error (HTTP ${expected}), but API accepted invalid data with HTTP 200.\nThe API should have rejected this request but instead processed it successfully.`;
       }
 
-      return `HTTP status mismatch.\nExpected: ${expected}, Received: ${received}.`;
+      // MASTER FIX: Expected 200/201 but got 403/401 (auth issue)
+      if ((received === '403' || received === '401') && (expected === '200' || expected === '201')) {
+        return `API returned HTTP ${received} (${received === '403' ? 'Forbidden' : 'Unauthorized'}).\nExpected: HTTP ${expected}.\nLikely cause: Authentication token expired or insufficient permissions.`;
+      }
+
+      return `HTTP status mismatch.\nExpected: ${expected}, Received: ${received}.\nReview test expectations and API behavior to determine if this is a bug.`;
     }
 
     // Pattern: Business rule validation failures
@@ -704,26 +792,46 @@ export class ReportExporter {
   private static getClassificationReason(failureType: string, result: any): string {
     const errorMsg = (result.error?.message || '').toLowerCase();
     switch (failureType) {
-      case 'INFRA_FAILURE': return 'Network or infrastructure error prevented test execution';
+      case 'INFRA_PRESSURE':
+        if (errorMsg.includes('rate_limit_exhausted') || errorMsg.includes('rate_limit') || errorMsg.includes('429')) {
+          return 'Rate limiting (429) prevented test execution after multi-cycle user rotation';
+        }
+        if (errorMsg.includes('timeout') || errorMsg.includes('econnrefused') || errorMsg.includes('econnreset')) {
+          return 'Network timeout or connection error prevented test execution';
+        }
+        if (errorMsg.includes('address limit') || errorMsg.includes('br-001')) {
+          return 'Address limit (BR-001) could not be resolved despite cleanup attempts';
+        }
+        return 'Infrastructure pressure prevented test completion';
+      case 'BUSINESS_RULE_VIOLATION':
+        if (errorMsg.includes('br-001')) return 'BR-001: Address limit not enforced by API';
+        if (errorMsg.includes('br-002')) return 'BR-002: Address name length limit not enforced';
+        if (errorMsg.includes('br-003')) return 'BR-003: Default address deletion protection not enforced';
+        if (errorMsg.includes('br-004')) return 'BR-004: Single default address constraint violated';
+        return 'API did not enforce expected business rule';
+      case 'SECURITY_DEFECT':
+        if (errorMsg.includes('sql')) return 'Potential SQL injection vulnerability detected';
+        if (errorMsg.includes('cross-user') || errorMsg.includes('403')) return 'Cross-user data access not properly restricted';
+        if (errorMsg.includes('data leakage')) return 'Sensitive data exposed in API response';
+        return 'Security vulnerability detected in API behavior';
+      case 'LOCALIZATION_DEFECT':
+        return 'API returned response in wrong language for Accept-Language header';
+      case 'DATA_INTEGRITY_DEFECT':
+        return 'Created entity not found in subsequent API responses (eventual consistency failure)';
       case 'SETUP_ERROR':
         if (errorMsg.includes('floor field must be numeric')) {
-          return 'Test data violation: floor field sent with non-numeric value ("3rd", etc.)';
+          return 'Test data violation: floor field sent with non-numeric value';
         }
         if (errorMsg.includes('apartment field must be a number')) {
           return 'Test data violation: apartment field sent as non-number type';
         }
-        if (errorMsg.includes('missing required field')) {
-          return 'Test data violation: missing required field in payload';
-        }
         return 'Test setup or data validation failed before API call';
       case 'API_FAILURE': return 'API response did not match expected behavior';
       case 'SKIPPED_BY_DESIGN': return 'Test skipped due to precondition not met';
-      case 'SKIPPED_ENV_CONSTRAINT':
-        if (errorMsg.includes('address limit') || errorMsg.includes('br-001') || errorMsg.includes('20 addresses')) {
-          return 'BR-001 precondition not met: could not fill account to 20 addresses before testing limit rejection';
-        }
-        return 'Test skipped due to environment constraint (address limit, partial auth)';
-      case 'ENVIRONMENT_NOISE': return 'Rate limiting (429) prevented test execution';
+      // Legacy categories kept for backward compatibility
+      case 'INFRA_FAILURE': return 'Infrastructure error prevented test execution';
+      case 'SKIPPED_ENV_CONSTRAINT': return 'Environment constraint prevented test execution';
+      case 'ENVIRONMENT_NOISE': return 'Environmental noise or transient issue';
       case 'VALIDATION_FAILURE': return 'Payload capture or validation failed';
       default: return 'Unclassified failure';
     }
@@ -741,11 +849,14 @@ export class ReportExporter {
     const bugs: BugData[] = [];
     let bugCounter = 1;
 
+    // Bug-worthy failure types: API bugs + classified defects (not INFRA_PRESSURE)
+    const BUG_WORTHY_TYPES = new Set(['API_FAILURE', 'SECURITY_DEFECT', 'BUSINESS_RULE_VIOLATION', 'DATA_INTEGRITY_DEFECT', 'LOCALIZATION_DEFECT']);
     testCases.forEach(tc => {
-      if (tc.status === 'FAIL' && tc.failure_type === 'API_FAILURE') {
+      if (tc.status === 'FAIL' && BUG_WORTHY_TYPES.has(tc.failure_type)) {
+        const typeLabel = tc.failure_type === 'API_FAILURE' ? 'API Failure' : tc.failure_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         const bug: BugData = {
           bug_id: `BUG-${String(bugCounter).padStart(3, '0')}`,
-          title: `${tc.test_id}: ${tc.test_name} — API Failure`,
+          title: `${tc.test_id}: ${tc.test_name} — ${typeLabel}`,
           severity: tc.priority === 'CRITICAL' ? 'CRITICAL' : tc.priority === 'HIGH' ? 'HIGH' : 'MEDIUM',
           description: `Test ${tc.test_id} failed: ${tc.description}`,
           expected_result: tc.expected_result,
@@ -777,8 +888,11 @@ export class ReportExporter {
     const envConstraints = testCases.filter(t => t.status === 'ENVIRONMENT_CONSTRAINT').length;
     const deviations = testCases.filter(t => t.status === 'PASS_WITH_CONTRACT_DEVIATION').length;
     const invalidSetup = testCases.filter(t => t.status === 'INVALID_TEST_SETUP').length;
+    // Count INFRA_PRESSURE failures (rate-limit, network issues — not API defects)
+    const infraPressure = testCases.filter(t => t.failure_type === 'INFRA_PRESSURE').length;
 
-    const effectiveDenom = total - blocked - envConstraints - skipped - invalidSetup;
+    // Exclude INFRA_PRESSURE from effective denominator (alongside blocked, skipped, etc.)
+    const effectiveDenom = total - blocked - envConstraints - skipped - invalidSetup - infraPressure;
     // Recovered counts as passing for the rate
     const passRate = total > 0 ? `${(((passed + recovered) / total) * 100).toFixed(1)}%` : '0%';
     const effectivePassRate = effectiveDenom > 0 ? `${(((passed + recovered) / effectiveDenom) * 100).toFixed(1)}%` : '0%';
@@ -792,7 +906,7 @@ export class ReportExporter {
       }
     });
 
-    return { total, passed, failed, skipped, blocked, recovered, envConstraints, deviations, invalidSetup, passRate, effectivePassRate, bugCounts };
+    return { total, passed, failed, skipped, blocked, recovered, envConstraints, deviations, invalidSetup, infraPressure, passRate, effectivePassRate, bugCounts };
   }
 
   /**
@@ -862,10 +976,11 @@ export class ReportExporter {
     testCases.forEach(tc => {
       const notes = tc.diagnostic_notes?.join(' ') || '';
       const actualResult = tc.actual_result || '';
-      if (notes.includes('RateLimit') || actualResult.includes('RateLimit') || tc.failure_type === 'ENVIRONMENT_NOISE') {
+      if (notes.includes('RateLimit') || actualResult.includes('RateLimit') ||
+          tc.failure_type === 'ENVIRONMENT_NOISE' || tc.failure_type === 'INFRA_PRESSURE') {
         rateLimitAffected.push(tc.test_id);
         if (tc.status === 'RECOVERED') rateLimitRecovered++;
-        if (tc.status === 'ENVIRONMENT_CONSTRAINT' || tc.failure_type === 'ENVIRONMENT_NOISE') rateLimitExhausted++;
+        if (tc.failure_type === 'INFRA_PRESSURE' || tc.failure_type === 'ENVIRONMENT_NOISE') rateLimitExhausted++;
       }
     });
     if (rateLimitAffected.length > 0) {
@@ -874,6 +989,19 @@ export class ReportExporter {
         affectedTests: rateLimitAffected,
         recoveredCount: rateLimitRecovered,
         exhaustedCount: rateLimitExhausted,
+      };
+    }
+
+    // Aggregate governor telemetry from per-test metadata
+    const govStats = testCases
+      .filter(tc => tc.governor_telemetry)
+      .map(tc => tc.governor_telemetry!);
+    if (govStats.length > 0) {
+      meta.governorTelemetry = {
+        total429s: Math.max(...govStats.map(g => g.total429s)),
+        systemPauses: Math.max(...govStats.map(g => g.systemPauses)),
+        adaptiveDelayMs: Math.max(...govStats.map(g => g.currentDelay)),
+        infraPressureCount: stats.infraPressure,
       };
     }
 

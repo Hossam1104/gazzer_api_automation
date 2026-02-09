@@ -12,14 +12,19 @@
       "Bash(tee:*)",
       "Bash(timeout 600 tail:*)",
       "Bash(cat:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(findstr:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(del \"c:\\\\Users\\\\DBSMENA\\\\OneDrive\\\\Gazzar APP\\\\Testing\\\\gazzer_api_automation\\\\_ul\")"
     ]
   },
   "hooks": {
-    "afterEdit": {
-      "command": "npx tsc --noEmit --pretty 2>&1 | head -20",
-      "description": "Type-check after every edit to catch mismatches early"
-    }
+    "PostToolUse": [
+      {
+        "command": "npx tsc --noEmit --pretty 2>&1 | head -20",
+        "description": "Type-check after every edit to catch mismatches early"
+      }
+    ]
   }
 }
-

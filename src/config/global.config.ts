@@ -18,6 +18,15 @@ import path from 'path';
 import { ENV } from './env';
 
 type UserCredentials = { login: string; password: string };
+type GovernorConfig = {
+  maxConcurrent: number;
+  minDelay: number;
+  adaptiveMultiplier: number;
+  sustainedThreshold: number;
+  pauseDuration: number;
+  rateWindow: number;
+};
+
 type ExecutionConfig = {
   minimum_test_cases: number;
   max_test_cases: number;
@@ -68,6 +77,16 @@ const execution: ExecutionConfig = {
   cleanup_mode: exec.cleanup_mode === 'full' ? 'full' : 'partial',
 };
 
+const gov = jsonConfig?.execution?.governor || {};
+const governor: GovernorConfig = {
+  maxConcurrent: gov.max_concurrent ?? 2,
+  minDelay: ENV.REQUEST_DELAY_MS || (gov.min_delay_ms ?? 150),
+  adaptiveMultiplier: gov.adaptive_multiplier ?? 1.5,
+  sustainedThreshold: gov.sustained_threshold ?? 5,
+  pauseDuration: gov.pause_duration_ms ?? 10000,
+  rateWindow: gov.rate_window_ms ?? 30000,
+};
+
 export const GlobalConfig = {
   baseUrl: apiBaseUrl,
   apiVersion: ENV.API_VERSION,
@@ -83,6 +102,7 @@ export const GlobalConfig = {
     maxTestCases: execution.max_test_cases,
     cleanupEnabled: execution.cleanup_enabled,
     cleanupMode: execution.cleanup_mode,
+    governor,
   },
   environment: ENV.ENVIRONMENT,
 };

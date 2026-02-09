@@ -12,6 +12,7 @@ reports/
 .DS_Store
 Thumbs.db
 .vscode/
+.vs/
 *.log
 
 # Build output

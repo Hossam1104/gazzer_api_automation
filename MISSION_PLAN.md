@@ -334,10 +334,87 @@ Test execution MUST abort immediately if:
 
 ---
 
-## 17. 📋 Implementation Phases
+## 17. Implementation Phases (Original Plan)
 1. **Foundation**: Auth, Client, Reporting structure.
 2. **Controllers**: CRUD operations + Logging + Retry.
 3. **Validators**: Zod schemas + Business rules.
 4. **Specs**: All endpoint scenarios (Happy/Fail).
 5. **State & Reports**: `StateTracker` + JSON/HTML generation.
 6. **CI/CD**: Pipeline setup + artifacts.
+
+---
+
+## 18. Implementation History (What Was Actually Built)
+
+### Phase 1 — Foundation (Feb 6-7, 2026)
+- AuthController with primary user login
+- ClientAddressesController with CRUD operations
+- 5 static spec files (list, create, update, delete, default)
+- StateTracker for non-destructive address lifecycle management
+- Basic ReportExporter generating HTML from Playwright JSON
+- Environment config via `.env` + `global_config.json`
+
+### Phase 2 — Critical Repairs (Feb 7)
+- **Auth propagation fix**: API uses `access_token` (not `token`); updated all specs
+- **BOM handling**: Added ResponseHelper.safeJson() to strip UTF-8 BOM before parsing
+- **StateTracker hardening**: Fail-fast on non-200 responses, handle `status: "success"` format
+- **Report rebuild**: Complete rewrite of ReportExporter (was showing -10 passed, 0 total)
+- **Payload corrections**: Added required fields (building, floor, apartment, lat, long)
+- **API contract discovery**: Documented 422 vs 400, empty data arrays, pagination defaults
+
+### Phase 3 — Scale & Corrections (Feb 8)
+- **Dynamic test generation**: `addresses.dynamic.spec.ts` generating 200+ test cases
+- **BR-001 precondition logic**: Seed loop with consecutive failure tracking + PRECONDITION_SKIP
+- **Report generation bug**: Fixed reportExporter to loop ALL spec.tests (was only reading first)
+- **Payload persistence**: Moved cleanDiskPayloads() to globalSetup.ts (single cleanup at start)
+- **Arabic test visibility**: Added language badges and filter dropdown to HTML report
+- **Bug classification**: Distinguished API bugs from env constraints (SKIPPED_ENV_CONSTRAINT)
+- **ADDR-DEFAULT-001 timing**: Added 300ms delay for API eventual consistency
+
+### Phase 4 — Security & Resilience (Feb 8-9)
+- **Security payloads**: SQL injection (8), XSS (10), path traversal (4), command injection (4), NoSQL (3), LDAP (3), format string (3), edge cases (4) — 39 attack vectors
+- **OWASP mapping**: Test IDs mapped to OWASP API Top 10 categories (API1-API8)
+- **Multi-user failover**: Two-user auth pool with automatic rotation on 429
+- **ResilientClientAddresses**: Transparent failover wrapper around controller
+- **Rate limit classification**: Changed from ENVIRONMENT_NOISE to INFRA_FAILURE
+- **Human-readable errors**: humanizeError() method with 8+ specific patterns replacing raw Playwright assertions
+- **Request delay tuning**: Increased from 0.5s to 1.0s to reduce 429 frequency
+
+### Phase 5 — Dashboard & Reporting (Feb 9)
+- **Executive dashboard**: `index.html` + `script.js` + `styles.css` (vanilla JS, no frameworks)
+- **Report manifest**: `reports/manifest.json` for automatic API report discovery
+- **Strict metric mapping**: Dashboard reads JSON with zero inference, shows N/A for missing data
+- **KPI cards**: Aggregated Total APIs, Total Tests, Success Rate, Issues Found
+- **Per-API cards**: Metrics, severity breakdown, OWASP coverage, language badges
+- **Theme toggle**: Light/Dark mode with localStorage persistence
+- **Category filtering**: Admin, Customer, Vendor, Delivery categories
+- **CORS handling**: file:// protocol support + serve-dashboard.bat for http-server
+
+### Phase 6 — Cleanup & Governance (Feb 9)
+- Deleted 5 useless files (artifacts + historical fix logs)
+- Removed 4 dead exports from payload files
+- Updated .gitignore with .vs/ exclusion
+- Rewrote README.md as authoritative source
+- Consolidated markdown documentation
+- All TypeScript files verified to have professional JSDoc headers
+
+---
+
+## 19. Known Limitations
+
+- **Rate limit sensitivity**: API throttles aggressively; even with 1.0s delay and two users, some tests may hit 429 during high-volume runs
+- **Eventual consistency**: Set-default API returns 200 before persistence completes; tests use 300ms delay as workaround
+- **No soft-delete support**: API does not support soft-delete; cleanup is logical (track created IDs, delete non-defaults)
+- **Single API coverage**: Currently only covers Client Addresses; other APIs (Restaurants, Cart, Orders) not yet automated
+- **Sequential execution only**: Workers locked to 1 to prevent auth storms; parallelization requires per-worker auth pools
+
+---
+
+## 20. Future Enhancements
+
+- Expand API coverage beyond Client Addresses (Restaurants, Cart, Orders, Payments)
+- CI/CD pipeline refinement with GitHub Actions artifact management
+- Performance benchmarks (response time tracking, P95/P99 metrics)
+- Contract drift detection (alert on unexpected API response fields)
+- Parallel execution with per-worker auth pool isolation
+- Visual regression testing for the HTML report template

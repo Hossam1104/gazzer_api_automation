@@ -36,13 +36,16 @@ test.describe('Client Addresses - Update', () => {
       await ensureAddressCapacity(tracker, apiContext, testId);
       // 1. Create address
       const payload = generateUniqueAddress(`${testInfo.workerIndex}-${language}`);
-      const createRes = await controller.createAddress(payload, { testId: `${testId}-setup`, acceptLanguage: language });
+      let createRes = await controller.createAddress(payload, { testId: `${testId}-setup`, acceptLanguage: language });
       if (createRes.status() === 400) {
         const cBody = await ResponseHelper.safeJson(createRes);
         const msg = (cBody.message || '').toLowerCase();
         if (msg.includes('20') || msg.includes('limit') || msg.includes('maximum') || msg.includes('delete an existing')) {
-          console.warn(`[${testId}] Address limit reached during ${language} iteration — skipping this language.`);
-          return;
+          await ensureAddressCapacity(tracker, apiContext, testId);
+          createRes = await controller.createAddress(payload, { testId: `${testId}-retry`, acceptLanguage: language });
+          if (createRes.status() !== 200) {
+            throw new Error(`[INFRA_PRESSURE] Address limit persists after cleanup for ${testId} [${language}]`);
+          }
         }
       }
       expect(createRes.status(), 'Create failed').toBe(200);
@@ -93,26 +96,23 @@ test.describe('Client Addresses - Update', () => {
       await ensureAddressCapacity(tracker, apiContext, testId);
       // 1. Create valid address
       const payload = generateUniqueAddress(`${testInfo.workerIndex}-${language}`);
-      const createRes = await controller.createAddress(payload, { testId: `${testId}-setup`, acceptLanguage: language });
+      let createRes = await controller.createAddress(payload, { testId: `${testId}-setup`, acceptLanguage: language });
       if (createRes.status() === 400) {
         const cBody = await ResponseHelper.safeJson(createRes);
         const msg = (cBody.message || '').toLowerCase();
         if (msg.includes('20') || msg.includes('limit') || msg.includes('maximum') || msg.includes('delete an existing')) {
-          console.warn(`[${testId}] Address limit reached during ${language} iteration — skipping this language.`);
-          return;
+          await ensureAddressCapacity(tracker, apiContext, testId);
+          createRes = await controller.createAddress(payload, { testId: `${testId}-retry`, acceptLanguage: language });
+          if (createRes.status() !== 200) {
+            throw new Error(`[INFRA_PRESSURE] Address limit persists after cleanup for ${testId} [${language}]`);
+          }
         }
       }
       expect(createRes.status(), 'Create failed').toBe(200);
 
-      let created = await findCreatedAddress(controller as any, 'name', payload.name, `${testId}-list-${language}`, language);
+      const created = await findCreatedAddress(controller as any, 'name', payload.name, `${testId}-list-${language}`, language);
       if (!created) {
-        // Retry once after a brief delay — address may not be immediately visible after creation
-        await new Promise(r => setTimeout(r, 1500));
-        created = await findCreatedAddress(controller as any, 'name', payload.name, `${testId}-list-${language}-retry`, language);
-        if (!created) {
-          console.warn(`[${testId}] Created address not found after retry: ${payload.name} — skipping ${language} iteration.`);
-          return;
-        }
+        throw new Error(`[DATA_INTEGRITY_DEFECT] Created address not found after polling: ${payload.name} for ${testId} [${language}]`);
       }
       tracker.trackCreation(created.id);
 

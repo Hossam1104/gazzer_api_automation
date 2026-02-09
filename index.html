@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gazzer API Testing Dashboard</title>
+
+    <!-- External Dependencies: FontAwesome for icons, Cairo font for typography -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Configuration and Logic -->
+    <script src="config.js"></script> <!-- Static configuration fallback -->
+    <script src="script.js" defer></script> <!-- Main Dashboard Controller -->
+</head>
+
+<body>
+    <!-- Background decoration elements -->
+    <div class="bg-decoration">
+        <div class="bg-circle circle-1"></div>
+        <div class="bg-circle circle-2"></div>
+        <div class="bg-circle circle-3"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="main-header">
+        <div class="layout-container">
+            <div class="header-wrapper">
+                <div class="brand-section">
+                    <div class="logo-container">
+                        <img src="./Assets/Logo.png" alt="Gazzer Logo" width="60" height="60">
+                        <div class="logo-text">
+                            <h1>Gazzer API Testing</h1>
+                            <p class="tagline">Enterprise Quality Assurance Dashboard</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-section">
+                    <div class="user-profile">
+                        <div class="avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="user-info">
+                            <h3>Hossam Mohamed</h3>
+                            <p>Software QA Engineer</p>
+                        </div>
+                    </div>
+
+                    <div class="header-actions">
+                        <a href="./about.html" class="nav-link">
+                            <i class="fas fa-book"></i> Docs
+                        </a>
+                        <!-- <a href="./prompt_generator.html" class="nav-link">
+                            <i class="fas fa-magic"></i> Prompts
+                        </a> -->
+                        <!-- Sync Static Registry Button (Phase 15) -->
+                        <!-- <button id="syncRegistryBtn" class="nav-link btn-sync"
+                            title="Sync local reports with static registry"
+                            style="background: none; border: none; font-family: inherit; font-size: inherit; color: inherit; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: var(--radius-md); transition: all var(--transition-fast);">
+                            <i class="fas fa-sync-alt"></i> Sync
+                        </button> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Theme Toggle (Fixed Position) -->
+    <!-- Allows users to switch between Light and Dark modes -->
+    <div class="theme-toggle-container">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Dark Mode">
+            <i class="fas fa-moon"></i>
+        </button>
+    </div>
+
+    <!-- KPI Section: High-level Metrics -->
+    <!-- Displays total APIs, test counts, success rates, and bug counts -->
+    <section class="kpi-section">
+        <div class="layout-container">
+            <div class="section-header">
+                <h2 class="section-title">Testing Overview</h2>
+                <p class="section-subtitle">Real-time aggregated statistics from all API testing reports</p>
+            </div>
+
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon-wrapper">
+                        <div class="kpi-icon-bg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas fa-server"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="total-apis">0</div>
+                        <div class="kpi-label">Total APIs</div>
+                        <div class="kpi-trend">
+                            <i class="fas fa-arrow-up trend-up"></i>
+                            <span>Last scan: <span id="last-scan">Now</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon-wrapper">
+                        <div class="kpi-icon-bg" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <i class="fas fa-vial"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="total-tests">0</div>
+                        <div class="kpi-label">Total Tests</div>
+                        <div class="kpi-trend">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Across all categories</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon-wrapper">
+                        <div class="kpi-icon-bg" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="avg-success">0%</div>
+                        <div class="kpi-label">Success Rate</div>
+                        <div class="kpi-trend">
+                            <i class="fas fa-check-circle trend-success"></i>
+                            <span>Overall performance</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon-wrapper">
+                        <div class="kpi-icon-bg" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <i class="fas fa-bug"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="total-bugs">0</div>
+                        <div class="kpi-label">Issues Found</div>
+                        <div class="kpi-trend">
+                            <i class="fas fa-exclamation-circle trend-warning"></i>
+                            <span>Requires attention</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories Navigation -->
+    <section class="categories-section">
+        <div class="layout-container">
+            <div class="section-header">
+                <h2 class="section-title">API Categories</h2>
+                <p class="section-subtitle">Organized by application type and service domain</p>
+            </div>
+
+            <div class="categories-grid">
+                <div class="category-card admin active" data-category="admin">
+                    <div class="category-header">
+                        <div class="category-icon admin">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <div class="category-badge">Primary</div>
+                    </div>
+                    <div class="category-content">
+                        <h3>Admin Dashboard APIs</h3>
+                        <p>Backend administration and management APIs for system configuration</p>
+                        <div class="category-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-folder"></i>
+                                <span><strong id="admin-folder-count">0</strong> folders</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-vial"></i>
+                                <span><strong id="admin-test-count">0</strong> tests</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="category-action">
+                        <button class="category-select-btn">Select Category</button>
+                    </div>
+                </div>
+
+                <div class="category-card customer" data-category="customer">
+                    <div class="category-header">
+                        <div class="category-icon customer">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="category-badge">Customer</div>
+                    </div>
+                    <div class="category-content">
+                        <h3>Customer App APIs</h3>
+                        <p>Customer-facing mobile and web application APIs for end-user interactions</p>
+                        <div class="category-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-folder"></i>
+                                <span><strong id="customer-folder-count">0</strong> folders</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-vial"></i>
+                                <span><strong id="customer-test-count">0</strong> tests</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="category-action">
+                        <button class="category-select-btn">Select Category</button>
+                    </div>
+                </div>
+
+                <div class="category-card vendor" data-category="vendor">
+                    <div class="category-header">
+                        <div class="category-icon vendor">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <div class="category-badge">Business</div>
+                    </div>
+                    <div class="category-content">
+                        <h3>Vendor App APIs</h3>
+                        <p>Vendor management and business operations APIs for partner services</p>
+                        <div class="category-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-folder"></i>
+                                <span><strong id="vendor-folder-count">0</strong> folders</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-vial"></i>
+                                <span><strong id="vendor-test-count">0</strong> tests</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="category-action">
+                        <button class="category-select-btn">Select Category</button>
+                    </div>
+                </div>
+
+                <div class="category-card delivery" data-category="delivery">
+                    <div class="category-header">
+                        <div class="category-icon delivery">
+                            <i class="fas fa-shipping-fast"></i>
+                        </div>
+                        <div class="category-badge">Delivery</div>
+                    </div>
+                    <div class="category-content">
+                        <h3>Delivery App APIs</h3>
+                        <p>Delivery and logistics management APIs for tracking and dispatch</p>
+                        <div class="category-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-folder"></i>
+                                <span><strong id="delivery-folder-count">0</strong> folders</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-vial"></i>
+                                <span><strong id="delivery-test-count">0</strong> tests</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="category-action">
+                        <button class="category-select-btn">Select Category</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reports Sections -->
+    <section class="reports-section">
+        <div id="toast-container" class="toast-container"></div>
+        <div class="layout-container">
+            <!-- Admin Dashboard APIs Section -->
+            <div class="category-reports-container active" id="admin-reports">
+                <div class="reports-header">
+                    <div class="reports-title">
+                        <div class="title-icon admin">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <div>
+                            <h2>Admin Dashboard APIs</h2>
+                            <p>Backend administration and management APIs</p>
+                        </div>
+                    </div>
+                    <div class="reports-actions">
+                        <div class="search-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="search-input" id="search-admin"
+                                placeholder="Search Admin APIs...">
+                        </div>
+                        <a href="./Assets/report_template/index.html" class="action-btn outline" target="_blank">
+                            <i class="fas fa-file-code"></i> View Template
+                        </a>
+                        <button class="action-btn primary" id="scan-admin">
+                            <i class="fas fa-sync-alt"></i> Scan Reports
+                        </button>
+                    </div>
+                </div>
+                <div class="reports-grid" id="admin-grid">
+                    <!-- Admin API reports will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- Customer App APIs Section -->
+            <div class="category-reports-container" id="customer-reports">
+                <div class="reports-header">
+                    <div class="reports-title">
+                        <div class="title-icon customer">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <h2>Customer App APIs</h2>
+                            <p>Customer-facing mobile and web application APIs</p>
+                        </div>
+                    </div>
+                    <div class="reports-actions">
+                        <div class="search-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="search-input" id="search-customer"
+                                placeholder="Search Customer APIs...">
+                        </div>
+                        <button class="action-btn primary" id="scan-customer">
+                            <i class="fas fa-sync-alt"></i> Scan Reports
+                        </button>
+                    </div>
+                </div>
+                <div class="reports-grid" id="customer-grid">
+                    <!-- Customer API reports will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- Vendor App APIs Section -->
+            <div class="category-reports-container" id="vendor-reports">
+                <div class="reports-header">
+                    <div class="reports-title">
+                        <div class="title-icon vendor">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <div>
+                            <h2>Vendor App APIs</h2>
+                            <p>Vendor management and business operations APIs</p>
+                        </div>
+                    </div>
+                    <div class="reports-actions">
+                        <div class="search-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="search-input" id="search-vendor"
+                                placeholder="Search Vendor APIs...">
+                        </div>
+                        <button class="action-btn primary" id="scan-vendor">
+                            <i class="fas fa-sync-alt"></i> Scan Reports
+                        </button>
+                    </div>
+                </div>
+                <div class="reports-grid" id="vendor-grid">
+                    <!-- Vendor API reports will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- Delivery App APIs Section -->
+            <div class="category-reports-container" id="delivery-reports">
+                <div class="reports-header">
+                    <div class="reports-title">
+                        <div class="title-icon delivery">
+                            <i class="fas fa-shipping-fast"></i>
+                        </div>
+                        <div>
+                            <h2>Delivery App APIs</h2>
+                            <p>Delivery and logistics management APIs</p>
+                        </div>
+                    </div>
+                    <div class="reports-actions">
+                        <div class="search-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="search-input" id="search-delivery"
+                                placeholder="Search Delivery APIs...">
+                        </div>
+                        <button class="action-btn primary" id="scan-delivery">
+                            <i class="fas fa-sync-alt"></i> Scan Reports
+                        </button>
+                    </div>
+                </div>
+                <div class="reports-grid" id="delivery-grid">
+                    <!-- Delivery API reports will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="layout-container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <img src="./Assets/Logo.png" alt="Gazzer Logo" width="40" height="40">
+                        <h3>Gazzer App Company</h3>
+                    </div>
+                    <p class="footer-description">
+                        Enterprise-grade API testing dashboard with comprehensive reporting,
+                        monitoring, and analytics capabilities for modern development teams.
+                    </p>
+                    <div class="footer-social">
+                        <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                        <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="./about.html"><i class="fas fa-book"></i> Documentation</a></li>
+                        <li><a href="./Assets/report_template/index.html" target="_blank"><i
+                                    class="fas fa-file-alt"></i> Report Template</a></li>
+                        <!-- <li><a href="./prompt_generator.html"><i class="fas fa-magic"></i> Prompt Generator</a></li> -->
+                    </ul>
+                </div>
+
+                <div class="footer-contact">
+                    <h4>Contact Info</h4>
+                    <ul>
+                        <li><i class="fas fa-user"></i> Hossam Mohamed</li>
+                        <li><i class="fas fa-briefcase"></i> Software QA Engineer</li>
+                        <li><i class="fas fa-envelope"></i> Hossam.Abdallah@gazzerapp.com</li>
+                        <li><i class="fas fa-globe"></i> Gazzer App Platform</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; <span id="current-year">2024</span> Gazzer API Testing Dashboard. All rights reserved.</p>
+                <p class="footer-tagline">Designed for Quality Assurance Excellence</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Progress Modal -->
+    <div class="modern-modal" id="progress-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-robot"></i> Automation Execution</h3>
+                <button class="close-modal-btn"
+                    onclick="document.getElementById('progress-modal').classList.remove('active'); document.getElementById('progress-modal').style.display = 'none';">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="progress-info">
+                    <p id="progress-message">Initializing test sequence...</p>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar" id="execution-progress" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="execution-logs" id="execution-logs">
+                    <!-- Logs will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="admin-panel" id="admin-panel">
+        <div class="admin-panel-header">
+            <button class="admin-toggle-btn" id="admin-toggle">
+                <i class="fas fa-cogs"></i>
+                <span>Dashboard Controls</span>
+            </button>
+        </div>
+        <div class="admin-panel-content">
+            <div class="admin-controls">
+                <button class="control-btn primary" id="refresh-all">
+                    <i class="fas fa-redo"></i>
+                    <span>Refresh All</span>
+                </button>
+                <button class="control-btn secondary" id="clear-cache">
+                    <i class="fas fa-trash-alt"></i>
+                    <span>Clear Cache</span>
+                </button>
+                <!-- <button class="control-btn primary" id="run-automation-btn">
+                    <i class="fas fa-robot"></i>
+                    <span>Auto-Send to DeepSeek</span>
+                </button> -->
+            </div>
+            <div class="admin-stats">
+                <div class="stat-item">
+                    <i class="fas fa-chart-pie"></i>
+                    <div>
+                        <div class="stat-value" id="reports-count">0</div>
+                        <div class="stat-label">Total Reports</div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <div class="stat-value" id="last-update">Now</div>
+                        <div class="stat-label">Last Update</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

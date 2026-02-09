@@ -20,6 +20,7 @@ import { GlobalConfig } from '@/config/global.config';
 import { ApiClient } from '@/utils/apiClient';
 import { PayloadCapture } from '@/utils/payloadCapture';
 import { RateLimitError } from '@/utils/resilientClient';
+import { RequestGovernor } from '@/utils/requestGovernor';
 
 type RequestOptions = {
   acceptLanguage?: 'en' | 'ar';
@@ -40,65 +41,59 @@ export class ClientAddressesController {
     context: string,
     logMeta: { method: string; url: string; data?: any; testId?: string; language?: string; userKey?: 'user_one' | 'user_two' }
   ): Promise<APIResponse> {
-    let attempts = 0;
-    const maxRetries = GlobalConfig.execution.maxRetries;
-    let lastResponse: APIResponse | null = null;
+    const governor = RequestGovernor.getInstance();
+    const testId = logMeta.testId || `anon-${Date.now()}`;
 
-    while (attempts <= maxRetries) {
-      try {
-        ApiClient.logRequest(logMeta.method, logMeta.url, logMeta.data);
-        const response = await action();
-        lastResponse = response;
-        ApiClient.logResponse(response.status(), response.url());
+    // Execute via Governor (handles concurrency, pacing, and 429 tracking)
+    try {
+      ApiClient.logRequest(logMeta.method, logMeta.url, logMeta.data);
+      
+      const response = await governor.execute(
+        () => action(),
+        { testId, priority: 'NORMAL', label: context }
+      );
 
-        // Capture payload if testId provided (mandatory for report generation)
-        if (logMeta.testId) {
-          try {
-            await PayloadCapture.getInstance().capture(
-              logMeta.testId,
-              logMeta.method,
-              logMeta.url,
-              logMeta.data || null,
-              response,
-              { language: logMeta.language, userKey: logMeta.userKey }
-            );
-          } catch (captureError) {
-            console.error(`[PayloadCapture] Failed for ${logMeta.testId}:`, captureError);
-          }
+      // Record telemetry for every response
+      governor.recordResponse(response.status(), testId);
+      ApiClient.logResponse(response.status(), response.url());
+
+      // Mandatory Payload Capture
+      if (logMeta.testId) {
+        try {
+          await PayloadCapture.getInstance().capture(
+            logMeta.testId,
+            logMeta.method,
+            logMeta.url,
+            logMeta.data || null,
+            response,
+            { language: logMeta.language, userKey: logMeta.userKey }
+          );
+        } catch (captureError) {
+          console.error(`[PayloadCapture] Failed for ${logMeta.testId}:`, captureError);
         }
-
-        // Retry only transient responses; 429 escalates to RateLimitError after max retries.
-        if ([429, 502, 503, 504].includes(response.status())) {
-          if (attempts < maxRetries) {
-            const delay = Math.round(1000 * Math.pow(2, attempts) + Math.random() * 500);
-            console.warn(`[${context}] Got ${response.status()}. Retrying in ${delay}ms... (Attempt ${attempts + 1}/${maxRetries})`);
-            attempts++;
-            await new Promise(r => setTimeout(r, delay));
-            continue;
-          }
-          if (response.status() === 429) {
-            throw new RateLimitError(
-              `[RATE_LIMIT] ${context} exhausted retries for ${logMeta.url}`,
-              response.status(),
-              logMeta.url
-            );
-          }
-        }
-
-        return response;
-
-      } catch (error) {
-        if (attempts < maxRetries) {
-          const delay = Math.round(1000 * Math.pow(2, attempts) + Math.random() * 500);
-          console.warn(`[${context}] Network error: ${error}. Retrying in ${delay}ms... (Attempt ${attempts + 1}/${maxRetries})`);
-          attempts++;
-          await new Promise(r => setTimeout(r, delay));
-          continue;
-        }
-        throw error;
       }
+
+      // Propagate 429s as typed errors to let ResilientClient handle rotation
+      if (response.status() === 429) {
+        throw new RateLimitError(
+          `[RATE_LIMIT] ${context} received 429 for ${logMeta.url}`,
+          429,
+          logMeta.url
+        );
+      }
+
+      return response;
+
+    } catch (error) {
+      // Re-throw RateLimitErrors immediately
+      if (error instanceof RateLimitError) throw error;
+      
+      // Let other errors propagate (ResilientClient assumes 5xx/Network errors fail the test)
+      // Note: We deliberately removed the 5xx retry loop here because:
+      // 1. Playwright's test runner handles flake better than inner loops
+      // 2. We want accurate failure reporting for instability
+      throw error;
     }
-    throw new Error(`[${context}] Failed after ${maxRetries} retries.`);
   }
 
   /**

@@ -13,6 +13,7 @@ import fs from 'fs';
 import path from 'path';
 
 const PAYLOADS_DIR = path.resolve(__dirname, '../../test-results/payloads');
+const META_FILE = path.resolve(__dirname, '../../test-results/execution-meta.json');
 
 export default function globalSetup() {
   if (fs.existsSync(PAYLOADS_DIR)) {
@@ -25,5 +26,13 @@ export default function globalSetup() {
     if (files.length > 0) {
       console.log(`[GlobalSetup] Cleaned ${files.length} stale payload files from previous run.`);
     }
+  }
+
+  // Clean stale execution metadata from previous run
+  if (fs.existsSync(META_FILE)) {
+    try {
+      fs.unlinkSync(META_FILE);
+      console.log('[GlobalSetup] Cleaned stale execution-meta.json.');
+    } catch { /* ignore */ }
   }
 }

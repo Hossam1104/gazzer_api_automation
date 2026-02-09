@@ -23,6 +23,9 @@ export type ExecutionMeta = {
   cleanupActions?: string[];
   rateLimitEvents?: string[];
   provinceSource?: string;
+  governorStats?: { delay: number; pauses: number; total429s: number };
+  retryHistory?: string[];
+  failureCategory?: string;
 };
 
 /** Absolute path to the shared metadata file (read/written by all workers). */
@@ -113,6 +116,27 @@ export class ExecutionTracker {
   static recordProvinceSource(testId: string, source: string) {
     const meta = this.getOrCreate(testId);
     meta.provinceSource = source;
+    this.persist();
+  }
+
+  /** Records governor telemetry snapshot for a test. */
+  static recordGovernorStats(testId: string, stats: { delay: number; pauses: number; total429s: number }) {
+    const meta = this.getOrCreate(testId);
+    meta.governorStats = stats;
+    this.persist();
+  }
+
+  /** Records a retry attempt for traceability. */
+  static recordRetry(testId: string, detail: string) {
+    const meta = this.getOrCreate(testId);
+    meta.retryHistory = [...(meta.retryHistory || []), detail];
+    this.persist();
+  }
+
+  /** Records the classified failure category for a test. */
+  static recordFailureCategory(testId: string, category: string) {
+    const meta = this.getOrCreate(testId);
+    meta.failureCategory = category;
     this.persist();
   }
 

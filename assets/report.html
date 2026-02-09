@@ -578,6 +578,46 @@
             </div>
         </div>
 
+        <!-- Governor Telemetry & Infrastructure -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card card-custom">
+                    <div class="card-header bg-white border-0 pt-3 ps-3">
+                        <h5 class="card-title mb-0 text-primary"><i class="fas fa-network-wired me-2"></i>Infrastructure
+                            Telemetry (Request Governor)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-2 col-4 mb-3 border-end">
+                                <h6 class="text-muted small text-uppercase">Total Requests</h6>
+                                <h3 id="gov-total-requests" class="fw-bold text-dark">-</h3>
+                            </div>
+                            <div class="col-md-2 col-4 mb-3 border-end">
+                                <h6 class="text-muted small text-uppercase">Rate Limits (429)</h6>
+                                <h3 id="gov-total-429s" class="fw-bold text-danger">-</h3>
+                            </div>
+                            <div class="col-md-2 col-4 mb-3 border-end">
+                                <h6 class="text-muted small text-uppercase">System Pauses</h6>
+                                <h3 id="gov-system-pauses" class="fw-bold text-warning">-</h3>
+                            </div>
+                            <div class="col-md-2 col-4 mb-3 border-end">
+                                <h6 class="text-muted small text-uppercase">Infra Pressure</h6>
+                                <h3 id="gov-infra-pressure" class="fw-bold text-info">-</h3>
+                            </div>
+                            <div class="col-md-2 col-4 mb-3 border-end">
+                                <h6 class="text-muted small text-uppercase">Max Throttling</h6>
+                                <h3 id="gov-max-delay" class="fw-bold text-secondary">-</h3>
+                            </div>
+                            <div class="col-md-2 col-4 mb-3">
+                                <h6 class="text-muted small text-uppercase">Governance Health</h6>
+                                <div id="gov-health-badge" class="badge bg-success fs-6 mt-1">OPTIMAL</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Tabs Navigation -->
         <ul class="nav nav-tabs" id="reportTabs" role="tablist">
             <li class="nav-item" role="presentation">
@@ -1126,6 +1166,7 @@
 
                 // 4. RENDER DASHBOARD
                 renderSummary(renderMeta);
+                renderGovernorTelemetry(renderMeta);
                 initializeCharts(renderMeta);
                 initializeCategoryTable(normalized.testCases);
                 initializeBugs(normalized.testCases);
@@ -1391,6 +1432,37 @@
 
                 alertEl.className = alertClass;
                 alertEl.innerHTML = `<h4 class="alert-heading">${icon}${title}</h4><p class="mb-0">${message}</p>`;
+            }
+        }
+
+        function renderGovernorTelemetry(meta) {
+            const gov = meta.governorTelemetry;
+            if (gov) {
+                setText('gov-total-requests', meta.totalTestCases * 3); // Estimate if true total not available
+                // Better: Use meta.totalRequests if available, else derive? 
+                // For now, let's just show what we have or N/A
+                setText('gov-total-requests', gov.totalRequests || 'N/A');
+
+                setText('gov-total-429s', gov.total429s);
+                setText('gov-system-pauses', gov.systemPauses);
+                setText('gov-infra-pressure', gov.infraPressureCount || 0);
+                setText('gov-max-delay', (gov.adaptiveDelayMs || 0) + 'ms');
+
+                const healthBadge = document.getElementById('gov-health-badge');
+                if (healthBadge) {
+                    if (gov.total429s > 50 || gov.systemPauses > 5) {
+                        healthBadge.className = 'badge bg-danger fs-6 mt-1';
+                        healthBadge.textContent = 'CRITICAL';
+                    } else if (gov.total429s > 10 || gov.systemPauses > 0) {
+                        healthBadge.className = 'badge bg-warning fs-6 mt-1';
+                        healthBadge.textContent = 'STRAINED';
+                    } else {
+                        healthBadge.className = 'badge bg-success fs-6 mt-1';
+                        healthBadge.textContent = 'OPTIMAL';
+                    }
+                }
+            } else {
+                // Optional: Hide section if no data
             }
         }
 

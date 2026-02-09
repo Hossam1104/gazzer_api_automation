@@ -19,6 +19,8 @@ import { StateTracker } from '@/utils/stateTracker';
 import { ClientAddressesController } from '@/api/controllers/ClientAddressesController';
 import { MultiUserManager } from '@/utils/multiUserManager';
 import { ResilientClientAddresses } from '@/utils/resilientClient';
+import { RequestGovernor } from '@/utils/requestGovernor';
+import { EntityRegistry } from '@/utils/entityRegistry';
 
 /**
  * Shared test setup: creates APIRequestContext, authenticates, captures state.
@@ -26,6 +28,24 @@ import { ResilientClientAddresses } from '@/utils/resilientClient';
  * ROOT-CAUSE-B FIX: Token propagation is guaranteed before any API call.
  */
 export async function setupAuthenticatedContext(playwright: PlaywrightWorkerArgs['playwright']) {
+  // Configure governor from global config before any requests
+  const govConfig = GlobalConfig.execution.governor;
+  RequestGovernor.configure({
+    maxConcurrent: govConfig.maxConcurrent,
+    minInterRequestDelayMs: govConfig.minDelay,
+    adaptiveMultiplier: govConfig.adaptiveMultiplier,
+    sustainedThreshold: govConfig.sustainedThreshold,
+    systemPauseDurationMs: govConfig.pauseDuration,
+    rateLimitWindowMs: govConfig.rateWindow,
+  });
+
+  // Health check before proceeding
+  const health = await RequestGovernor.getInstance().healthCheck(GlobalConfig.baseUrl);
+  if (!health.healthy) {
+    throw new Error(`[Setup] API health check failed — ${GlobalConfig.baseUrl} unreachable`);
+  }
+  console.log(`[Setup] API health check: OK (${health.latencyMs}ms)`);
+
   const apiContext = await playwright.request.newContext({
     baseURL: GlobalConfig.baseUrl,
     extraHTTPHeaders: {
@@ -49,8 +69,8 @@ export async function setupAuthenticatedContext(playwright: PlaywrightWorkerArgs
 
 /**
  * Searches the address list for a recently created address by matching a field value.
- * Required because the create API returns an empty data field — the only way to
- * retrieve the new address is to list all addresses and match by name or other field.
+ * Uses polling via {@link EntityRegistry} to handle eventual consistency —
+ * retries up to 4 times with exponential delays if the entity isn't found immediately.
  *
  * Supports both {@link ResilientClientAddresses} (2-arg) and raw
  * {@link ClientAddressesController} (3-arg) calling conventions.
@@ -69,23 +89,13 @@ export async function findCreatedAddress(
   listTestId?: string,
   acceptLanguage?: 'en' | 'ar'
 ): Promise<any> {
-  // Support both resilient (2-arg: queryParams, options) and raw (3-arg: queryParams, testId, options) controllers
-  const isResilient = controller.constructor?.name === 'ResilientClientAddresses';
-  let listRes: any;
-  if (isResilient) {
-    listRes = await controller.listAddresses({ per_page: '100' }, { testId: listTestId || `find-${Date.now()}`, acceptLanguage });
-  } else {
-    listRes = await controller.listAddresses({ per_page: '100' }, listTestId, { acceptLanguage });
-  }
-  const listBody = await ResponseHelper.safeJson(listRes);
-
-  if (!Array.isArray(listBody?.data)) {
-    throw new Error(
-      `Failed to list addresses after creation. ` +
-      `Response: ${JSON.stringify(listBody).substring(0, 200)}`
-    );
-  }
-
-  const found = listBody.data.find((addr: any) => addr[matchField] === matchValue);
-  return found || null;
+  return EntityRegistry.getInstance().confirmCreation(
+    controller,
+    matchField,
+    matchValue,
+    {
+      testId: listTestId || `find-${Date.now()}`,
+      acceptLanguage,
+    }
+  );
 }

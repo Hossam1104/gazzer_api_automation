@@ -19,7 +19,7 @@ import { ENV } from './src/config/env';
 const config: PlaywrightTestConfig = {
   globalSetup: './src/config/globalSetup.ts',
   testDir: './src/api/specs',
-  timeout: 120000, // 120s — dynamic tests with rate-limit retries + cleanup can take longer
+  timeout: 180000, // 180s — governor cooldowns + multi-cycle rotation can extend test duration
   retries: 0, // Business logic retries handled in Controller. Test runner retries disabled to avoid masking real failures.
   workers: 1, // Single worker to prevent auth storm (429). All specs run sequentially in one process.
   use: {

@@ -22,6 +22,7 @@ import { StateTracker } from '@/utils/stateTracker';
 import { ClientAddressesController } from '@/api/controllers/ClientAddressesController';
 import { ResponseHelper } from '@/utils/responseHelper';
 import { ResilientClientAddresses } from '@/utils/resilientClient';
+import { RequestGovernor } from '@/utils/requestGovernor';
 
 /**
  * Ensure there is at least 1 address slot available.
@@ -167,4 +168,88 @@ export async function createAddressWithRetry(
   }
 
   return createRes;
+}
+
+/**
+ * Deferred cleanup strategy: collects address IDs for deletion and executes
+ * them in a batch during afterAll, keeping functional test flows free from
+ * cleanup-related rate-limit competition.
+ *
+ * Deletions are processed at LOW priority through the governor to avoid
+ * starving functional test requests.
+ */
+export class DeferredCleanup {
+  private static pending: Array<{ addressId: number; testId: string }> = [];
+
+  /** Registers an address for deferred deletion. */
+  static defer(addressId: number, testId: string): void {
+    DeferredCleanup.pending.push({ addressId, testId });
+  }
+
+  /** Returns count of addresses awaiting cleanup. */
+  static getPendingCount(): number {
+    return DeferredCleanup.pending.length;
+  }
+
+  /** Clears pending without executing (for resets). */
+  static clear(): void {
+    DeferredCleanup.pending = [];
+  }
+
+  /**
+   * Executes all deferred deletions in batch.
+   * Skips the default address (BR-003). Processes through the governor at LOW priority.
+   *
+   * @param controller - ClientAddressesController instance
+   * @param tracker - StateTracker instance (to check default ID)
+   * @returns Summary of deleted and failed counts
+   */
+  static async executeAll(
+    controller: ClientAddressesController,
+    tracker: StateTracker
+  ): Promise<{ deleted: number; failed: number }> {
+    const items = [...DeferredCleanup.pending];
+    DeferredCleanup.pending = [];
+
+    if (items.length === 0) return { deleted: 0, failed: 0 };
+
+    const defaultId = tracker.getDefaultAddressId();
+    const governor = RequestGovernor.getInstance();
+    let deleted = 0;
+    let failed = 0;
+
+    console.log(`[DeferredCleanup] Executing ${items.length} deferred deletions...`);
+
+    for (const { addressId, testId } of items) {
+      // BR-003: Never delete the default address
+      if (Number(addressId) === Number(defaultId)) {
+        console.warn(`[DeferredCleanup] Skipping default address ${addressId}`);
+        continue;
+      }
+
+      try {
+        // Execute via Governor (Low Priority)
+        const response = await governor.execute(
+          () => controller.deleteAddress(addressId),
+          { testId: `${testId}-cleanup`, priority: 'LOW', label: 'deferredCleanup' }
+        );
+        
+        governor.recordResponse(response.status(), `${testId}-cleanup`);
+
+        if (response.ok()) {
+          deleted++;
+          tracker.trackDeletion(addressId);
+        } else {
+          failed++;
+          console.warn(`[DeferredCleanup] Failed to delete ${addressId}: ${response.status()}`);
+        }
+      } catch (e) {
+        failed++;
+        console.warn(`[DeferredCleanup] Error deleting ${addressId}: ${(e as Error).message}`);
+      }
+    }
+
+    console.log(`[DeferredCleanup] Complete: ${deleted} deleted, ${failed} failed`);
+    return { deleted, failed };
+  }
 }

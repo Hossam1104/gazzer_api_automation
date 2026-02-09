@@ -19,9 +19,17 @@
   },
   "execution": {
     "minimum_test_cases": 200,
-    "max_test_cases": 250,
-    "request_delay": 0.5,
+    "max_test_cases": 270,
+    "request_delay": 1.0,
     "cleanup_enabled": true,
-    "cleanup_mode": "partial"
+    "cleanup_mode": "partial",
+    "governor": {
+      "max_concurrent": 2,
+      "min_delay_ms": 150,
+      "adaptive_multiplier": 1.5,
+      "sustained_threshold": 5,
+      "pause_duration_ms": 10000,
+      "rate_window_ms": 30000
+    }
   }
 }
